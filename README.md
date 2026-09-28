@@ -12,7 +12,7 @@ WeatherGPT provides an **authoritative, conversational AI layer** that:
 2. Retrieves verified meteorological forecasts from **Open-Meteo & Numerical Weather Prediction (NWP)** models (ECMWF, GFS, ICON).
 3. Evaluates severe weather thresholds and displays **NDMA SACHET / IMD CAP Early Warnings**.
 4. Generates tailored, actionable domain advisories for **Farmers (Kisan 🌾)**, **Travelers (Yatri ✈️)**, **Urban Residents (Nagrik 🏙️)**, and **Disaster Officers (🚨)**.
-5. **Prevents Hallucinations (Grounded AI)**: The AI never invents weather numbers; it only interprets and translates verified meteorological datasets.
+5. **Prevents Hallucinations (Grounded AI)**: The AI never invents weather numbers; it only interprets and translates verified meteorological datasets integrated.
 
 ---
 
