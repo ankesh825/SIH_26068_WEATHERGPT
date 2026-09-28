@@ -14,6 +14,10 @@ function getBackendBase() {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') {
     return 'http://localhost:8000';
   }
+  // When hosted on any cloud domain (Render, Railway, custom domain), use origin
+  if (window.location.protocol.startsWith('http')) {
+    return window.location.origin;
+  }
   return 'https://weathergpt-sih-2026-1.onrender.com';
 }
 
@@ -25,11 +29,19 @@ async function initApp() {
   setupEventListeners();
   window.chatController.init(updateWeatherDashboard);
 
-  // Initialize Radar Map
+  // Initialize Atmospheric Particle Engine
+  if (window.weatherVisualizer) {
+    window.weatherVisualizer.init();
+  }
+
+  // Initialize Doppler Radar & Pan-India Map
   window.radarViewer.init(22.7196, 75.8577);
 
   // Initial Weather Load for default city (Indore)
   await loadCityWeather(window.currentCity);
+
+  // Load All-India Live Weather News Ticker
+  initAllIndiaTicker();
 
   // Check Backend Health
   checkBackendHealth();
@@ -45,28 +57,35 @@ function setupEventListeners() {
     });
   }
 
-  // Persona Chips
-  const personaChips = document.querySelectorAll('.persona-chip');
-  personaChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      personaChips.forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      window.currentPersona = chip.dataset.persona;
-      switchPersonaDashboard(window.currentPersona);
-      updateContextualSuggestions(window.currentPersona);
+  // Pan-India Map Quick Trigger Button
+  const panIndiaBtn = document.getElementById('panIndiaMapToggleBtn');
+  if (panIndiaBtn) {
+    panIndiaBtn.addEventListener('click', () => {
+      const radarTab = document.querySelector('.dash-tab[data-tab="radar-view"]');
+      if (radarTab) radarTab.click();
+      window.radarViewer.setPanIndiaView();
     });
-  });
+  }
 
-  // Language Buttons
-  const langBtns = document.querySelectorAll('.lang-btn');
-  langBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      langBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      window.currentLanguage = btn.dataset.lang;
-      window.voiceEngine.setLanguage(window.currentLanguage);
+  // Radar Pan-India View Button
+  const radarPanIndiaBtn = document.getElementById('radarPanIndiaBtn');
+  if (radarPanIndiaBtn) {
+    radarPanIndiaBtn.addEventListener('click', () => {
+      document.querySelectorAll('.radar-action-chip').forEach(c => c.classList.remove('active'));
+      radarPanIndiaBtn.classList.add('active');
+      window.radarViewer.setPanIndiaView();
     });
-  });
+  }
+
+  // Radar Focus City View Button
+  const radarCityFocusBtn = document.getElementById('radarCityFocusBtn');
+  if (radarCityFocusBtn) {
+    radarCityFocusBtn.addEventListener('click', () => {
+      document.querySelectorAll('.radar-action-chip').forEach(c => c.classList.remove('active'));
+      radarCityFocusBtn.classList.add('active');
+      window.radarViewer.setCityFocusView();
+    });
+  }
 
   // Suggestion Chips Click
   const sugBtns = document.querySelectorAll('.sug-chip');
@@ -119,6 +138,108 @@ function setupEventListeners() {
   });
 }
 
+// Global helper to switch city from anywhere (ticker, map marker, suggestions)
+window.selectCityByName = function(cityName) {
+  window.currentCity = cityName;
+  const citySelect = document.getElementById('citySelector');
+  if (citySelect) {
+    let found = false;
+    for (let opt of citySelect.options) {
+      if (opt.value.toLowerCase() === cityName.toLowerCase()) {
+        citySelect.value = opt.value;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      const newOpt = document.createElement('option');
+      newOpt.value = cityName;
+      newOpt.textContent = cityName;
+      newOpt.selected = true;
+      citySelect.appendChild(newOpt);
+    }
+  }
+  loadCityWeather(cityName);
+};
+
+// All-India Live Weather News Ticker
+async function initAllIndiaTicker() {
+  const tickerTrack = document.getElementById('tickerTrack');
+  if (!tickerTrack) return;
+
+  const defaultCities = [
+    { name: "New Delhi", temp: 32, cond: "☀️ Sunny", alert: null },
+    { name: "Mumbai", temp: 29, cond: "🌧️ Coastal Showers", alert: "High Tide" },
+    { name: "Bengaluru", temp: 24, cond: "⛅ Pleasant", alert: null },
+    { name: "Kolkata", temp: 30, cond: "🌦️ Passing Rain", alert: null },
+    { name: "Chennai", temp: 31, cond: "🌊 Sea Breeze", alert: null },
+    { name: "Indore", temp: 28, cond: "⚡ Convective Clouds", alert: "Yellow Watch" },
+    { name: "Bhopal", temp: 29, cond: "⛅ Partly Cloudy", alert: null },
+    { name: "Jaipur", temp: 34, cond: "☀️ Dry Heat", alert: null },
+    { name: "Hyderabad", temp: 30, cond: "⛅ Clear", alert: null },
+    { name: "Ahmedabad", temp: 33, cond: "☀️ Clear Sky", alert: null },
+    { name: "Shimla", temp: 17, cond: "🌤️ Mountain Cool", alert: null },
+    { name: "Srinagar", temp: 16, cond: "⛅ Mild", alert: null },
+    { name: "Guwahati", temp: 27, cond: "🌧️ Thunderstorms", alert: "Rain Warning" },
+    { name: "Kochi", temp: 28, cond: "🌧️ Monsoon Rain", alert: null },
+    { name: "Patna", temp: 31, cond: "⛅ Humid", alert: null },
+    { name: "Lucknow", temp: 32, cond: "☀️ Sunny", alert: null }
+  ];
+
+  try {
+    const resp = await fetch(`${getBackendBase()}/api/weather/all-india`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.cities && data.cities.length > 0) {
+        renderTickerItems(data.cities);
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Using baseline All-India ticker data:", e);
+  }
+
+  renderTickerItems(defaultCities);
+
+  // Auto-refresh All-India ticker every 5 minutes
+  setInterval(async () => {
+    try {
+      const resp = await fetch(`${getBackendBase()}/api/weather/all-india`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.cities && data.cities.length > 0) renderTickerItems(data.cities);
+      }
+    } catch (_) {}
+  }, 300000);
+}
+
+function renderTickerItems(cities) {
+  const tickerTrack = document.getElementById('tickerTrack');
+  if (!tickerTrack) return;
+
+  // Duplicate for seamless infinite marquee scroll
+  const duplicated = [...cities, ...cities];
+  tickerTrack.innerHTML = '';
+
+  duplicated.forEach(c => {
+    const chip = document.createElement('span');
+    chip.className = 'ticker-city-chip';
+    chip.title = `Click to view ${c.name} forecast`;
+    const alertHTML = c.alert ? `<span class="city-alert">${c.alert}</span>` : '';
+    const condText = c.condition ? c.condition : (c.cond || '⛅ Partly Cloudy');
+    chip.innerHTML = `
+      <b class="city-name">📍 ${c.name}</b>: 
+      <span class="city-temp">${c.temperature || c.temp}°C</span> 
+      <span class="city-cond">${condText}</span>
+      ${alertHTML}
+    `;
+    chip.addEventListener('click', () => {
+      window.selectCityByName(c.name);
+    });
+    tickerTrack.appendChild(chip);
+  });
+}
+
 async function loadCityWeather(city) {
   try {
     const resp = await fetch(`${getBackendBase()}/api/weather/forecast?location=${encodeURIComponent(city)}`);
@@ -129,7 +250,7 @@ async function loadCityWeather(city) {
       return;
     }
   } catch (e) {
-    console.warn("Backend starting or unreachable, falling back to direct Open-Meteo:", e);
+    console.warn("Backend unreachable, falling back to direct Open-Meteo:", e);
   }
 
   // Client-Side Direct Fallback
@@ -139,7 +260,10 @@ async function loadCityWeather(city) {
       bhopal: { lat: 23.2599, lon: 77.4126, name: "Bhopal" },
       delhi: { lat: 28.6139, lon: 77.2090, name: "Delhi" },
       mumbai: { lat: 19.0760, lon: 72.8777, name: "Mumbai" },
-      jaipur: { lat: 26.9124, lon: 75.7873, name: "Jaipur" }
+      jaipur: { lat: 26.9124, lon: 75.7873, name: "Jaipur" },
+      bengaluru: { lat: 12.9716, lon: 77.5946, name: "Bengaluru" },
+      kolkata: { lat: 22.5726, lon: 88.3639, name: "Kolkata" },
+      chennai: { lat: 13.0827, lon: 80.2707, name: "Chennai" }
     };
     const c = coords[city.toLowerCase()] || coords.indore;
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,precipitation_probability&timezone=auto`;
@@ -195,17 +319,12 @@ function updateWeatherDashboard(weather) {
 
     if (weather.precipitation_probability > 40) {
       if (kisanAct) kisanAct.textContent = "Foliar spray aur sinchai agale 24 ghante ke liye taal dein taaki chemical wash-off na ho.";
-      if (yatriAct) yatriAct.textContent = "Bypass highways par visibility kam rahegi; sham 4 baje se 8 baje ke beech driving se bachein.";
-      if (nagrikAct) nagrikAct.textContent = "Low-lying underpass me paani bhar sakta hai; umbrella aur power bank ready rakhein.";
+      if (yatriAct) yatriAct.textContent = "Bypass highways par visibility kam rahegi; sham ke samay slow drive karein.";
+      if (nagrikAct) nagrikAct.textContent = "Low-lying underpass me waterlogging ho sakti hai; umbrella sath rakhein.";
     } else {
       if (kisanAct) kisanAct.textContent = "Mausam saaf hai; nindai-gudai aur keetnashak spray subah ke samay kar sakte hain.";
       if (yatriAct) yatriAct.textContent = "Highway corridor conditions clear aur safe hain; travel schedule on time rahega.";
       if (nagrikAct) nagrikAct.textContent = "Dopahar me direct dhoop se bachein aur hydration banaye rakhein.";
-    }
-
-    const tickerText = document.getElementById('tickerText');
-    if (tickerText) {
-      tickerText.textContent = `${weather.location}: ${weather.severe_warning.headline} - ${weather.severe_warning.description}`;
     }
   } else {
     alertBox.style.display = 'none';
@@ -233,9 +352,8 @@ function updateWeatherDashboard(weather) {
     });
   }
 
-  // Dynamic Persona Metrics
-  updatePersonaMetrics(weather);
-  switchPersonaDashboard(window.currentPersona || 'citizen');
+  // Dynamic Unified Multi-Domain Intelligence Cards
+  updateUnifiedAdvisories(weather);
 
   // Hourly Strip
   const hourlyContainer = document.getElementById('hourlyStrip');
@@ -254,9 +372,11 @@ function updateWeatherDashboard(weather) {
     });
   }
 
-  // 7-Day Outlook
+  // 7-Day Outlook & Visual Sliders
   const dailyContainer = document.getElementById('dailyList');
-  if (dailyContainer && weather.daily) {
+  if (window.weatherVisualizer && weather.daily) {
+    window.weatherVisualizer.renderDailySliders(weather.daily);
+  } else if (dailyContainer && weather.daily) {
     dailyContainer.innerHTML = '';
     weather.daily.forEach(d => {
       const row = document.createElement('div');
@@ -269,136 +389,71 @@ function updateWeatherDashboard(weather) {
       dailyContainer.appendChild(row);
     });
   }
-}
 
-function switchPersonaDashboard(persona) {
-  const generalDash = document.getElementById('generalDashboard');
-  const kisanDash = document.getElementById('kisanDashboard');
-  const yatriDash = document.getElementById('yatriDashboard');
-  const disasterDash = document.getElementById('disasterDashboard');
-
-  if (generalDash) generalDash.style.display = 'none';
-  if (kisanDash) kisanDash.style.display = 'none';
-  if (yatriDash) yatriDash.style.display = 'none';
-  if (disasterDash) disasterDash.style.display = 'none';
-
-  if (persona === 'farmer' && kisanDash) {
-    kisanDash.style.display = 'block';
-  } else if (persona === 'traveler' && yatriDash) {
-    yatriDash.style.display = 'block';
-  } else if (persona === 'disaster_officer' && disasterDash) {
-    disasterDash.style.display = 'block';
-  } else if (generalDash) {
-    generalDash.style.display = 'block';
+  // Atmospheric Particle Canvas, SVG Wave & Mini-Gauges
+  if (window.weatherVisualizer) {
+    window.weatherVisualizer.setWeatherState(weather.condition, weather.precipitation_probability);
+    if (weather.hourly) window.weatherVisualizer.renderHourlySpline(weather.hourly);
+    window.weatherVisualizer.updateGauges(weather);
   }
 }
 
-function updatePersonaMetrics(weather) {
+// Updates all 4 domains simultaneously in the single unified advisory format
+function updateUnifiedAdvisories(weather) {
   const isRain = weather.precipitation_probability > 40;
   const isWindy = weather.wind_speed > 20;
 
-  // Kisan
+  // 1. Kisan
   const soil = document.getElementById('kisanSoilMoisture');
   const spray = document.getElementById('kisanSprayWindow');
   const irrig = document.getElementById('kisanIrrigation');
   const pest = document.getElementById('kisanPestRisk');
 
-  if (soil) soil.textContent = `${Math.min(95, Math.max(35, weather.humidity + 5))}% (${isRain ? 'Adequate' : 'Dry'})`;
+  if (soil) soil.textContent = `${Math.min(95, Math.max(35, weather.humidity + 5))}% (${isRain ? 'Adequate' : 'Optimal'})`;
   if (spray) {
-    if (isWindy || isRain) {
-      spray.textContent = "Unfavorable (Wind/Rain Drift)";
-      spray.className = "k-val warn";
-    } else {
-      spray.textContent = "Favorable (Morning 7-10 AM)";
-      spray.className = "k-val safe";
-    }
+    spray.textContent = (isWindy || isRain) ? "Unfavorable (Wind/Rain Drift risk)" : "Favorable Morning Window (7-10 AM)";
   }
   if (irrig) {
-    irrig.textContent = isRain ? "Postpone Irrigation (Rain Expected)" : "Normal Irrigation Needed";
-    irrig.className = isRain ? "k-val info" : "k-val safe";
+    irrig.textContent = isRain ? "Postpone Irrigation (Rain Expected)" : "Safe for regular light irrigation";
   }
   if (pest) {
-    pest.textContent = weather.humidity > 65 ? "High (Fungal Blight Watch)" : "Low";
-    pest.className = weather.humidity > 65 ? "k-val warn" : "k-val safe";
+    pest.textContent = weather.humidity > 65 ? "Fungal Blight Risk: Moderate (High Humidity)" : "Pest Risk: Low";
   }
 
-  // Yatri
+  // 2. Yatri
   const safety = document.getElementById('yatriSafetyScore');
   const vis = document.getElementById('yatriVisibility');
   const crosswind = document.getElementById('yatriCrosswind');
-  if (safety) safety.textContent = isRain ? "6.8 / 10 (Wet Roads)" : "8.9 / 10 (Optimal)";
-  if (vis) vis.textContent = isRain ? "3 - 5 km (Scattered Rain)" : "> 8 km (Clear)";
-  if (crosswind) crosswind.textContent = `${weather.wind_speed} km/h (${isWindy ? 'Caution on flyovers' : 'Gentle'})`;
+  const flood = document.getElementById('yatriFloodRisk');
 
-  // Disaster Officer
-  const dLevel = document.getElementById('disasterLevel');
-  if (dLevel) dLevel.textContent = weather.severe_warning ? weather.severe_warning.headline : "Level-1 (Green / Normal)";
+  if (safety) safety.textContent = isRain ? "6.9 / 10 (Wet Roads Caution)" : "9.0 / 10 (Optimal Transit)";
+  if (vis) vis.textContent = isRain ? "Visibility: 3 - 5 km (Showers)" : "Visibility: > 8 km (Clear View)";
+  if (crosswind) crosswind.textContent = `Crosswind: ${weather.wind_speed} km/h (${isWindy ? 'Caution on elevated bridges' : 'Gentle'})`;
+  if (flood) flood.textContent = isRain ? "Underpass: Watch for brief waterlogging" : "Underpass Waterlogging: Low Risk";
 
-  const goOut = document.getElementById('generalGoOut');
+  // 3. Nagrik
   const comfort = document.getElementById('generalComfort');
+  const goOut = document.getElementById('generalGoOut');
   const risk = document.getElementById('generalRisk');
-  if (goOut) {
-    goOut.textContent = isRain ? "Umbrella le ke niklo" : "Outdoor OK";
-    goOut.className = isRain ? "k-val warn" : "k-val safe";
-  }
-  if (comfort) {
-    comfort.textContent = `${Math.round(weather.temperature)}°C • ${weather.humidity}% humid`;
-  }
+
+  if (comfort) comfort.textContent = `${Math.round(weather.temperature)}°C • ${weather.humidity}% Humidity`;
+  if (goOut) goOut.textContent = isRain ? "Umbrella / Raincoat recommended for commute" : "Outdoor weather pleasant & clear";
   if (risk) {
     risk.textContent = weather.severe_warning && weather.severe_warning.severity !== 'normal'
-      ? weather.severe_warning.headline
-      : "Normal / Green";
-    risk.className = weather.severe_warning && weather.severe_warning.severity !== 'normal' ? "k-val warn" : "k-val safe";
-  }
-}
-
-function updateContextualSuggestions(persona) {
-  const container = document.getElementById('suggestionChips');
-  if (!container) return;
-
-  const city = window.currentCity || 'Indore';
-  let prompts = [];
-
-  if (persona === 'farmer') {
-    prompts = [
-      `🌾 ${city} me aaj keetnashak spray safe hai?`,
-      `💧 Sinchai kab tak postpone karni chahiye?`,
-      `🌱 Kharif fasal ke liye 7-din barish forecast`,
-      `🐛 Nami se fungal disease risk kya hai?`
-    ];
-  } else if (persona === 'traveler') {
-    prompts = [
-      `🚗 ${city} se highway travel safe hai?`,
-      `🌫️ Bypass corridor par fog aur visibility?`,
-      `💨 Two-wheeler ke liye crosswind hazard?`,
-      `🛣️ Underpass waterlogging alert check karo`
-    ];
-  } else if (persona === 'disaster_officer') {
-    prompts = [
-      `🚨 Active districts aur alert severity check karo`,
-      `👥 Catchment area population at risk report`,
-      `📢 2G SMS aur IVR broadcast status trigger`,
-      `🏢 SDRF shelter readiness report`
-    ];
-  } else {
-    prompts = [
-      `Hi WeatherGPT, aaj ${city} ka mausam batao`,
-      `🌧️ Kal ${city} mein baarish hogi kya?`,
-      `☀️ Dopahar me UV Index aur heatwave alert?`,
-      `📅 ${city} 7-Day weather forecast`
-    ];
+      ? `Active Watch: ${weather.severe_warning.headline}`
+      : "IMD Watch Level: Normal / Green Zone";
   }
 
-  container.innerHTML = '';
-  prompts.forEach(p => {
-    const btn = document.createElement('button');
-    btn.className = 'sug-chip';
-    btn.textContent = p;
-    btn.addEventListener('click', () => {
-      window.chatController.sendMessage(p);
-    });
-    container.appendChild(btn);
-  });
+  // 4. Disaster Readiness
+  const dLevel = document.getElementById('disasterLevel');
+  const dPop = document.getElementById('disasterPop');
+  const dChannels = document.getElementById('disasterChannels');
+  const dShelters = document.getElementById('disasterShelters');
+
+  if (dLevel) dLevel.textContent = weather.severe_warning ? weather.severe_warning.headline : "Level-1 (Normal Green)";
+  if (dPop) dPop.textContent = isRain ? "Catchment monitoring active in low-lying sectors" : "No vulnerable settlements at risk";
+  if (dChannels) dChannels.textContent = "NDMA CAP Gateway Stream Active";
+  if (dShelters) dShelters.textContent = "SDRF Regional Response: Routine Logged";
 }
 
 async function loadNWPComparison(city) {

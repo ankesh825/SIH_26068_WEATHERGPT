@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  weathergpt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weathergpt-app
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DEBUG=False
+      - ALLOWED_ORIGINS=*
+      # Add your Gemini API key below if available:
+      - GEMINI_API_KEY=
+      - GEMINI_MODEL=gemini-1.5-flash
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

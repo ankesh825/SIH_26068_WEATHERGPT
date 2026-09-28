@@ -1,7 +1,9 @@
 backend/.venv/
+.venv/
 backend/.cursor/
 __pycache__/
 *.py[cod]
 .env
+backend/.env
 .DS_Store
 Thumbs.db

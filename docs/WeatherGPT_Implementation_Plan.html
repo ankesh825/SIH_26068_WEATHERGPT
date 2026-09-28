@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherGPT - System Implementation Plan & Architecture Document</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    :root {
+      --primary: #0f172a;
+      --accent: #2563eb;
+      --accent-cyan: #0284c7;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --bg: #ffffff;
+      --bg-alt: #f8fafc;
+      --border: #e2e8f0;
+      --badge-bg: #dbeafe;
+      --badge-text: #1e40af;
+      --alert-warn: #ea580c;
+      --alert-severe: #dc2626;
+      --card-border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background-color: var(--bg);
+      line-height: 1.6;
+      padding: 40px 50px;
+      font-size: 13.5px;
+    }
+
+    @page {
+      size: A4;
+      margin: 16mm 14mm 16mm 14mm;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        font-size: 12px;
+        background: #fff;
+        color: #000;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      .no-break {
+        page-break-inside: avoid;
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+      .header-container {
+        border-bottom: 2px solid #0f172a !important;
+      }
+    }
+
+    .header-container {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .title-area h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .title-area .subtitle {
+      font-size: 14px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .title-area .theme-line {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .meta-badges {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-primary {
+      background: var(--badge-bg);
+      color: var(--badge-text);
+      border: 1px solid #bfdbfe;
+    }
+
+    .badge-tag {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+    }
+
+    h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 26px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin-bottom: 12px;
+      color: #334155;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 14px;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    .diagram-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #0f172a;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .callout {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 4px solid var(--accent-cyan);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 14px 0;
+      font-size: 12.5px;
+    }
+
+    .callout strong {
+      color: #1e40af;
+    }
+
+    .callout-warn {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      border-left-color: var(--alert-warn);
+    }
+    .callout-warn strong {
+      color: #9a3412;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 20px 0;
+      font-size: 12px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 14px 0;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .card h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card p {
+      font-size: 12px;
+      margin-bottom: 0;
+      color: #475569;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+
+    .footer {
+      margin-top: 36px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <div class="header-container">
+    <div class="title-area">
+      <h1>🌤️ WeatherGPT</h1>
+      <div class="subtitle">Complete System Implementation & Architectural Specification</div>
+      <div class="theme-line"><b>Ministry of Earth Sciences (MoES)</b> &bull; <b>India Meteorological Department (IMD)</b> &bull; Problem ID: SIH26068</div>
+    </div>
+    <div class="meta-badges">
+      <span class="badge badge-primary">SIH26068 Prototype</span>
+      <span class="badge badge-tag">Release v1.0.0</span>
+      <span class="badge badge-tag">September 2026</span>
+    </div>
+  </div>
+
+  <!-- Section 1: Overview -->
+  <div class="no-break">
+    <h2>1. Executive Summary & Problem Formulation</h2>
+    <p>
+      The India Meteorological Department (IMD) and numerical forecasting centers produce rich, highly granular atmospheric forecasts. However, for farmers in rural hinterlands, inter-city highway travelers, and municipal disaster responders, raw numerical metrics (e.g. <em>28.5°C, 82% humidity, WMO code 65, 12 knot gusts</em>) are cryptic and lack actionable clarity.
+    </p>
+    <p>
+      <b>WeatherGPT</b> bridges this critical "last-mile" dissemination bottleneck by providing an authoritative, conversational AI layer that interprets verified Numerical Weather Prediction (NWP) forecasts into native linguistic advisories (Hindi, Hinglish, English) while enforcing strict <b>Zero-Hallucination Grounding</b>.
+    </p>
+
+    <div class="callout">
+      <strong>Core Architectural Axiom:</strong> The AI model <em>never invents, guesses, or speculates</em> on meteorological numbers. Forecast retrieval is strictly segregated from conversational narration.
+    </div>
+  </div>
+
+  <!-- Section 2: Architecture -->
+  <div class="no-break">
+    <h2>2. End-to-End System Pipeline & Information Flow</h2>
+    <div class="diagram-box">
+[User Query (Voice / Text in Hindi, Hinglish, English)]
+                      │
+                      ▼
+[Frontend Web Console (HTML5 + Glassmorphic UI)]
+  - Web Speech API: Voice-to-Text (STT) & Audio-Playback (TTS)
+  - Leaflet.js Real-time Doppler Precipitation Radar
+  - 24-Hour Color-Coded Risk Timeline Ribbon
+                      │  HTTP POST /api/chat
+                      ▼
+[FastAPI Backend Orchestration Engine]
+  │
+  ├─► [AI Parsing Engine]
+  │     - Query intent classification (Weather, Greeting, Identity, Off-Topic)
+  │     - Location extraction & timeframe resolution (today, kal, 7-days)
+  │     - Off-topic safety steering (avoids hallucinating on sports, movies)
+  │
+  ├─► [Geocoding Service]
+  │     - In-Memory Indian city dictionary (25+ major hubs)
+  │     - Open-Meteo Geocoding REST API fallback + memory cache
+  │
+  ├─► [Weather & NWP Service]
+  │     - Live Open-Meteo Forecast (temperature, humidity, rain probability, wind, UV)
+  │     - Multi-Model NWP Comparison (ECMWF IFS-025, NOAA GFS, DWD ICON)
+  │
+  ├─► [Disaster Alert & Early Warning Engine]
+  │     - IMD Common Alerting Protocol (CAP) & NDMA SACHET standards
+  │     - Automated thresholds: Heatwave (>=42°C Red), Storms (Orange), Lightning (Yellow)
+  │
+  ├─► [Domain Persona Advisory Engine]
+  │     - 🌾 Kisan (Farmer): Soil moisture, spraying window, irrigation timing
+  │     - 🚗 Yatri (Traveler): Hydroplaning hazard, fog visibility, corridor safety
+  │     - 🏙️ Nagrik (Citizen): Heat fatigue index, umbrella necessity, UV protection
+  │     - 🚨 Disaster Officer: Culvert inundation, population at risk, SDRF stand-by
+  │
+  └─► [Grounded Conversational Synthesis]
+        - Google Gemini 1.5 Flash (low temperature 0.2, strict grounding system instruction)
+        - Internal Deterministic NLU Template Engine (100% offline fallback)
+                      │
+                      ▼
+[Standardized ChatResponse JSON] ──► [Hero Card, Intel Box, Radar & Timeline Sync]
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Section 3: Technology Stack -->
+  <div class="no-break">
+    <h2>3. Technology Stack & Implementation Standards</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Subsystem</th>
+          <th>Technology</th>
+          <th>Implementation Role & Key Features</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Backend Core</b></td>
+          <td>FastAPI (Python 3.12)</td>
+          <td>Asynchronous ASGI high-performance server, OpenAPI/Swagger interactive documentation at <code>/docs</code>.</td>
+        </tr>
+        <tr>
+          <td><b>Data Validation</b></td>
+          <td>Pydantic v2</td>
+          <td>Strict typed schemas for requests, responses, weather cards, and alert definitions.</td>
+        </tr>
+        <tr>
+          <td><b>Network Client</b></td>
+          <td>HTTPX (Async)</td>
+          <td>Non-blocking asynchronous calls to meteorological endpoints with strict timeout guards.</td>
+        </tr>
+        <tr>
+          <td><b>AI Narration</b></td>
+          <td>Google Gemini 1.5 Flash</td>
+          <td>Grounded narration under strict anti-hallucination system prompt; deterministic template fallback when offline.</td>
+        </tr>
+        <tr>
+          <td><b>Meteorological Data</b></td>
+          <td>Open-Meteo API</td>
+          <td>Live hourly and 7-day numerical forecasts, NWP ensemble models (ECMWF, GFS, ICON).</td>
+        </tr>
+        <tr>
+          <td><b>Radar Engine</b></td>
+          <td>Leaflet.js + RainViewer</td>
+          <td>Interactive Doppler radar precipitation map with live historical radar scans and tile caching.</td>
+        </tr>
+        <tr>
+          <td><b>Voice Engine</b></td>
+          <td>Web Speech API</td>
+          <td>Browser-native Speech-to-Text (STT) mic and Text-to-Speech (TTS) audio narration in Hindi/English.</td>
+        </tr>
+        <tr>
+          <td><b>Client Console</b></td>
+          <td>Vanilla HTML5 / CSS3 / ES6</td>
+          <td>Zero external framework dependencies, ultra-fast load time on 2G/3G low-bandwidth connections.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 4: Backend Module Details -->
+  <div class="no-break">
+    <h2>4. Backend Module & Service Architecture</h2>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4>🤖 AI & Query Parsing Engine (<code>ai_service.py</code>)</h4>
+        <p>
+          Classifies dialog intent into <code>weather</code>, <code>greeting</code>, <code>identity</code>, or <code>off_topic</code>. Implements safety guardrails that politely decline queries on cricket, cinema, or coding, redirecting users back to live weather metrics. Automatically infers domain personas when agricultural or travel keywords are detected.
+        </p>
+      </div>
+
+      <div class="card">
+        <h4>🌤️ Weather & NWP Engine (<code>weather_service.py</code>)</h4>
+        <p>
+          Extracts real-time metrics, hourly forecasts (24 points), and 7-day trends. Decodes 20+ WMO atmospheric codes into visual icons and descriptions. Compares ECMWF, GFS, and ICON forecasts to generate model consensus summaries. Includes offline synthetic data fallback.
+        </p>
+      </div>
+
+      <div class="card">
+        <h4>🚨 Alert Evaluation Engine (<code>alert_service.py</code>)</h4>
+        <p>
+          Evaluates IMD CAP rules: <b>Red Alert</b> for extreme heat (≥42°C); <b>Orange Alert</b> for heavy rainfall (>25mm) and high winds (>45 km/h); <b>Yellow Watch</b> for lightning storms. Maintains simulated CAP bulletins for Mumbai, Indore, and Delhi.
+        </p>
+      </div>
+
+      <div class="card">
+        <h4>🌾 Domain Advisory Engine (<code>advisory_engine.py</code>)</h4>
+        <p>
+          Computes actionable guidance: advises farmers to halt pesticide spraying and delay irrigation if rain probability exceeds 50%; warns motorists about hydroplaning and wet road braking buffers; alerts citizens about UV index protection and umbrella need.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="no-break">
+    <h3>REST API Endpoints Specification</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Method & Endpoint</th>
+          <th>Query / Body Parameters</th>
+          <th>Output Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>POST /api/chat</code></td>
+          <td><code>message, persona, language, city, lat, lon</code></td>
+          <td>Main conversational intelligence: returns textual answer, weather card, alert badges, persona advice, and follow-up prompts.</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/weather/forecast</code></td>
+          <td><code>location, lat, lon</code></td>
+          <td>Detailed weather metrics, 24-hour hourly points, 7-day forecast array, and severe warning evaluation.</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/weather/models</code></td>
+          <td><code>location</code></td>
+          <td>Side-by-side comparison of ECMWF, GFS, and ICON model predictions with consensus summary.</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/alerts/active</code></td>
+          <td>None</td>
+          <td>List of all active disaster bulletins across monitored districts.</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/climate/history</code></td>
+          <td><code>location</code></td>
+          <td>5-year historical rainfall and temperature trend data for agricultural and climate resilience planning.</td>
+        </tr>
+        <tr>
+          <td><code>GET /health</code></td>
+          <td>None</td>
+          <td>Server liveness probe returning system status and version.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Section 5: Frontend Console -->
+  <div class="no-break">
+    <h2>5. Frontend Dashboard & User Interaction Console</h2>
+    <p>
+      The user interface (<code>frontend/index.html</code>) is constructed as a dual-column command console optimized for both desktop and mobile viewports:
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4>💬 Left Column: Conversational Console</h4>
+        <ul>
+          <li><b>Speech-to-Text (STT)</b>: Native microphone input recognizing Hindi and Indian English.</li>
+          <li><b>Text-to-Speech (TTS)</b>: <code>🔊 Listen</code> button for spoken narration of every response.</li>
+          <li><b>Grounding Transparency Inspector</b>: Expandable details element showing meteorological grid coordinates, verified data feeds, and DPDP Act 2023 compliance.</li>
+          <li><b>Client-Side Resilient Fallback</b>: If backend is offline, frontend queries Open-Meteo directly and formulates responses in the browser.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h4>📊 Right Column: Multi-Tab Intelligence Console</h4>
+        <ul>
+          <li><b>Live Metrics Hero Card</b>: Temperature, apparent heat index, wind, humidity, UV index, and AQI.</li>
+          <li><b>24-Hour Risk Timeline Ribbon</b>: Visual color-coded hourly danger window (Green / Yellow / Red).</li>
+          <li><b>Interactive Persona Panels</b>: Dynamic metrics for Kisan (soil moisture, spray window), Yatri (corridor score, fog), and Disaster Officer (SDRF readiness).</li>
+          <li><b>Doppler Radar Tab</b>: Leaflet map streaming live precipitation tiles from RainViewer.</li>
+          <li><b>NWP Model Comparison</b>: Cards showing ECMWF vs GFS vs ICON forecasts.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Data Baseline & Compliance -->
+  <div class="no-break">
+    <h2>6. As-Built Data Baseline & Compliance Map</h2>
+    <p>
+      In accordance with engineering integrity requirements (documented in <code>DATA_BASELINE.md</code>), here is the transparent status of all data pipelines:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Data Pipeline</th>
+          <th>Live vs Prototype</th>
+          <th>Verified Data Provider</th>
+          <th>Technical Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Forecast (Current, 24h, 7-Day)</b></td>
+          <td><b style="color:#16a34a;">100% Live</b></td>
+          <td>Open-Meteo Forecast API</td>
+          <td>Direct live REST feed; falls back to synthetic offline model only upon network failure.</td>
+        </tr>
+        <tr>
+          <td><b>Location & Geocoding</b></td>
+          <td><b style="color:#16a34a;">100% Live</b></td>
+          <td>Open-Meteo Geocoding + Offline DB</td>
+          <td>Resolves any global city; instant resolution for 25+ Indian cities via offline cache.</td>
+        </tr>
+        <tr>
+          <td><b>Doppler Weather Radar</b></td>
+          <td><b style="color:#16a34a;">100% Live</b></td>
+          <td>RainViewer Radar API</td>
+          <td>Real-time radar scan loop overlaid on Leaflet CartoDB dark basemap.</td>
+        </tr>
+        <tr>
+          <td><b>NWP Model Comparison</b></td>
+          <td><b style="color:#16a34a;">100% Live</b></td>
+          <td>Open-Meteo NWP Multi-Model</td>
+          <td>Fetches concurrent runs from ECMWF, GFS, and ICON on the Models view.</td>
+        </tr>
+        <tr>
+          <td><b>NDMA / CAP Disaster Alerts</b></td>
+          <td><b style="color:#ea580c;">Hybrid Prototype</b></td>
+          <td>Static Bulletins + Threshold Engine</td>
+          <td>Simulated bulletins for Mumbai/Indore/Delhi + dynamic rule evaluation (heatwave, storm).</td>
+        </tr>
+        <tr>
+          <td><b>Air Quality Index (AQI)</b></td>
+          <td><b style="color:#64748b;">Baseline (45)</b></td>
+          <td>Schema Default Placeholder</td>
+          <td>Hardcoded baseline (architecture ready for CPCB National AQI API plug-in).</td>
+        </tr>
+        <tr>
+          <td><b>5-Year Climate Trends</b></td>
+          <td><b style="color:#64748b;">Climatological Formula</b></td>
+          <td>Latitude Climatology Baseline</td>
+          <td>Regional latitude formula reflecting monsoon variability trends.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 7: Execution Guide -->
+  <div class="no-break">
+    <h2>7. Execution & Deployment Reference</h2>
+    <div class="diagram-box">
+# 1. Start FastAPI Backend (Local port 8000)
+cd backend
+.\.venv\Scripts\activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Interactive Swagger Documentation: http://localhost:8000/docs
+
+# 2. Start Frontend Static Server (Port 3000)
+cd frontend
+python -m http.server 3000
+
+# Access Application: http://localhost:3000 (or open index.html directly)
+    </div>
+  </div>
+
+  <!-- Document Footer -->
+  <div class="footer">
+    <span>WeatherGPT SIH26068 Technical Specification &bull; Ministry of Earth Sciences (MoES)</span>
+    <span>Page generated: September 2026</span>
+  </div>
+
+</body>
+</html>

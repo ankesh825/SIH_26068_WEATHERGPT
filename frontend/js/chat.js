@@ -10,14 +10,20 @@ function getApiBaseUrl() {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') {
     return 'http://localhost:8000/api';
   }
-  // Production cloud backend deployed on Render
+  // When hosted on any cloud domain (Render, Railway, custom domain), use origin
+  if (window.location.protocol.startsWith('http')) {
+    return `${window.location.origin}/api`;
+  }
   return 'https://weathergpt-sih-2026-1.onrender.com/api';
 }
 
 const WEATHER_WORDS = [
   'weather', 'mausam', 'baarish', 'barish', 'rain', 'temperature', 'temp', 'garmi',
   'sardi', 'forecast', 'alert', 'cyclone', 'flood', 'khet', 'sinchai', 'travel',
-  'highway', 'umbrella', 'humidity', 'wind', 'hawa', 'uv', 'aqi', 'imd', 'toofan'
+  'highway', 'umbrella', 'humidity', 'wind', 'hawa', 'uv', 'aqi', 'imd', 'toofan',
+  'kapde', 'sukha', 'car wash', 'wash', 'walk', 'cricket', 'match', 'khel', 'ac', 'dhoop',
+  'clothes', 'dry', 'jogging', 'run', 'safar', 'trip', 'outdoor', 'garmi', 'thand', 'chhat',
+  'gaadi', 'cooler', 'sweater', 'jacket', 'pant', 'coat', 'raining', 'subah', 'shaam', 'kal', 'parso'
 ];
 
 function classifyClientIntent(query) {
@@ -36,6 +42,8 @@ class ChatController {
     this.inputField = document.getElementById('chatInput');
     this.form = document.getElementById('chatForm');
     this.suggestionContainer = document.getElementById('suggestionChips');
+    this.conversationId = sessionStorage.getItem('weathergpt_conv_id') || ('conv_' + Math.random().toString(36).substring(2, 9));
+    sessionStorage.setItem('weathergpt_conv_id', this.conversationId);
   }
 
   init(onWeatherUpdateCallback) {
@@ -57,6 +65,8 @@ class ChatController {
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
         this.messagesContainer.innerHTML = '';
+        this.conversationId = 'conv_' + Math.random().toString(36).substring(2, 9);
+        sessionStorage.setItem('weathergpt_conv_id', this.conversationId);
         this.appendAssistantMessage("Conversation cleared. How can I assist with weather & disaster safety?", null, [], []);
       });
     }
@@ -147,11 +157,12 @@ class ChatController {
       </div>
     `;
 
-    // TTS speaker click handler
+    // TTS speaker click handler (auto-detects language)
     const ttsBtn = msgDiv.querySelector('.btn-tts');
     if (ttsBtn) {
       ttsBtn.addEventListener('click', () => {
-        window.voiceEngine.speakText(answerText, window.currentLanguage);
+        const hasHindiScript = /[\u0900-\u097F]/.test(answerText);
+        window.voiceEngine.speakText(answerText, hasHindiScript ? 'hindi' : 'hinglish');
       });
     }
 
@@ -189,11 +200,12 @@ class ChatController {
     this.appendUserMessage(queryText);
     this.appendLoadingMessage();
 
+    // Let Gemini / backend NLU auto-detect the user's natural language like ChatGPT
     const payload = {
       message: queryText,
-      persona: window.currentPersona || 'citizen',
-      language: window.currentLanguage || 'hinglish',
-      city: window.currentCity || 'Indore'
+      persona: window.currentPersona || 'general',
+      city: window.currentCity || 'Indore',
+      conversation_id: this.conversationId
     };
 
     try {
@@ -207,6 +219,9 @@ class ChatController {
 
       if (resp.ok) {
         const data = await resp.json();
+        if (data.weather_card && data.weather_card.location) {
+          window.currentCity = data.weather_card.location;
+        }
         this.appendAssistantMessage(
           data.answer,
           data.alert,
@@ -220,17 +235,30 @@ class ChatController {
           this.onWeatherUpdate(data.weather_card);
         }
       } else {
-        await this.generateClientSideFallback(queryText, window.currentCity || 'Indore', window.currentLanguage || 'hinglish', window.currentPersona || 'citizen');
+        await this.generateClientSideFallback(queryText, window.currentCity || 'Indore', window.currentPersona || 'general');
       }
     } catch (err) {
       this.removeLoadingMessage();
       console.warn("Backend fetch failed, activating resilient direct client engine:", err);
-      await this.generateClientSideFallback(queryText, window.currentCity || 'Indore', window.currentLanguage || 'hinglish', window.currentPersona || 'citizen');
+      await this.generateClientSideFallback(queryText, window.currentCity || 'Indore', window.currentPersona || 'general');
     }
   }
 
-  async generateClientSideFallback(query, defaultCity, lang, persona) {
+  async generateClientSideFallback(query, defaultCity, persona) {
+    const isHindiScript = /[\u0900-\u097F]/.test(query);
     const lower = query.toLowerCase();
+    const hinglishMarkers = ['kya', 'hai', 'hoga', 'hogi', 'batao', 'kaise', 'kaisa', 'mein', 'aaj', 'kal', 'baarish', 'barish', 'mausam', 'khet', 'sinchai', 'safar', 'jaana', 'chahiye', 'rahega', 'kitna', 'namaste', 'kapde', 'sukha', 'chhat'];
+    const englishMarkers = ['what', 'will', 'how', 'is', 'the', 'weather', 'temperature', 'forecast', 'rain', 'today', 'tomorrow', 'check', 'should', 'can', 'clothes', 'dry'];
+    
+    let detectedLang = 'hinglish';
+    if (isHindiScript) {
+      detectedLang = 'hindi';
+    } else if (englishMarkers.some(m => lower.includes(m)) && !hinglishMarkers.some(m => lower.includes(m))) {
+      detectedLang = 'english';
+    } else {
+      detectedLang = 'hinglish';
+    }
+
     const cities = {
       indore: { lat: 22.7196, lon: 75.8577, name: "Indore" },
       bhopal: { lat: 23.2599, lon: 77.4126, name: "Bhopal" },
@@ -271,36 +299,108 @@ class ChatController {
       const isRainy = rainProb > 40;
       const dialog = classifyClientIntent(query);
 
+      let intent = 'general_forecast';
+      if (dialog === 'greeting' || dialog === 'identity' || dialog === 'off_topic') {
+        intent = dialog;
+      } else if (/kapde|dry clothes|drying|chhat par|sukha/.test(lower)) {
+        intent = 'clothes_drying';
+      } else if (/car wash|gaadi dhona|bike wash|dhulwa|wash/.test(lower)) {
+        intent = 'car_wash';
+      } else if (/walk|morning walk|jogging|exercise|running|tahalne|sair/.test(lower)) {
+        intent = 'morning_walk';
+      } else if (/cricket|match|khel|football|sports|ground/.test(lower)) {
+        intent = 'outdoor_sports';
+      } else if (/kitne baje|kab hogi|kab aayegi|what time|when will it rain/.test(lower)) {
+        intent = 'rain_timing';
+      } else if (/kya pehne|garmi|thand|ac chalaye|fan|sweater|jacket|hoodie|feels like/.test(lower)) {
+        intent = 'apparel_comfort';
+      } else if (/sinchai|irrigate|khet|fasal|crop|pesticide/.test(lower)) {
+        intent = 'agriculture';
+      } else if (/travel|safar|drive|road|highway|bike se|car se/.test(lower)) {
+        intent = 'travel';
+      } else if (/baarish|rain|raining|barsat/.test(lower)) {
+        intent = 'rain_forecast';
+      }
+
       let answer = "";
       let advisories = [];
-      let intentTag = dialog;
+      let followups = [];
+
+      // Conversational Openers
+      const openers_hg = [
+        `Maine **${targetCity.name}** ka live status check kiya hai — `,
+        `Dekhiye, **${targetCity.name}** ke taaza data ke mutabiq: `,
+        `Bilkul! **${targetCity.name}** ki current situation yeh hai: `
+      ];
+      const op_hg = openers_hg[Math.floor(Math.random() * openers_hg.length)];
 
       if (dialog === 'greeting') {
-        answer = lang === 'hindi'
-          ? `नमस्ते! मैं **WeatherGPT** हूँ। अभी **${targetCity.name}** में **${temp}°C** है। बारिश, अलर्ट या यात्रा पूछ सकते हैं।`
-          : `Namaste! Main **WeatherGPT** hoon. Abhi **${targetCity.name}** mein **${temp}°C** hai (${rainProb}% rain). Persona na ho to bhi pooch sakte ho.`;
+        answer = detectedLang === 'hindi'
+          ? `नमस्ते! मैं **WeatherGPT** हूँ। अभी **${targetCity.name}** में तापमान **${temp}°C** है (बारिश की संभावना ~${rainProb}%)। कपड़े सुखाने, बारिश या यात्रा के बारे में पूछ सकते हैं!`
+          : (detectedLang === 'english'
+             ? `Hello! I am **WeatherGPT**. In **${targetCity.name}**, it is currently **${temp}°C** with about ${rainProb}% rain chance. Ask about rain timings, outdoor workouts, or highway travel!`
+             : `Namaste! Main **WeatherGPT** hoon. Abhi **${targetCity.name}** mein **${temp}°C** hai (${rainProb}% rain chance). Baarish, chhat par kapde sukhane ya safar ke bare me poochiye!`);
+        followups = [`${targetCity.name} mein baarish hogi kya?`, "Kya chhat par kapde sukha sakte hain?", "Car wash karwana safe hai?"];
       } else if (dialog === 'identity') {
-        answer = `Main **WeatherGPT (SIH26068)** hoon — weather + disaster assistant. General user, kisan, yatri, nagrik sab handle karta hoon. Live ${targetCity.name}: **${temp}°C**.`;
+        answer = `Main **WeatherGPT (SIH26068)** hoon — IMD aur MoES theme par aadharit real-time meteorological AI. Live **${targetCity.name}**: **${temp}°C**, humidity ${humidity}%, wind ${wind} km/h.`;
+        followups = ["Mausam kaisa rahega?", "Active alerts", "Kisan advisory"];
       } else if (dialog === 'off_topic') {
-        answer = lang === 'english'
-          ? `That is outside weather/disaster safety, so I will not guess. I can still help with **${targetCity.name}**: **${temp}°C**, rain ~${rainProb}%. Ask rain, alerts, farming or travel.`
-          : `Yeh sawal weather se related nahi lagta, isliye guess nahi karunga.\n\n**${targetCity.name}** live: **${temp}°C**, baarish ~${rainProb}%. Baarish / alert / kheti / travel poochiye — main deal karunga.`;
-      } else if (lang === 'hindi') {
-        answer = `🌤️ **${targetCity.name} मौसम रिपोर्ट (Live Direct Feed):**\nवर्तमान तापमान **${temp}°C** (महसूस: ${appTemp}°C) है। आर्द्रता ${humidity}% और हवा की गति ${wind} km/h है। बारिश की संभावना लगभग **${rainProb}%** है।`;
+        answer = detectedLang === 'english'
+          ? `That is outside weather and disaster safety. I can still help with **${targetCity.name}**: **${temp}°C**, rain ~${rainProb}%. Ask about rain, drying clothes, car wash, or highway travel.`
+          : (detectedLang === 'hindi'
+             ? `यह सवाल मौसम या आपदा सुरक्षा से संबंधित नहीं है। मैं **${targetCity.name}** का मौसम बता सकता हूँ: तापमान **${temp}°C**, बारिश ~${rainProb}%.`
+             : `Yeh sawal weather se related nahi lagta. **${targetCity.name}** live: **${temp}°C**, baarish ~${rainProb}%. Baarish, kapde sukhane ya travel safety poochiye.`);
+        followups = [`${targetCity.name} forecast`, "Rain window?", "Road safety"];
+      } else if (intent === 'clothes_drying') {
+        if (isRainy || humidity > 75) {
+          answer = detectedLang === 'hindi'
+            ? `छत पर कपड़े सुखाना **जोखिम भरा हो सकता है**। बारिश की संभावना लगभग **${rainProb}%** है और हवा में नमी **${humidity}%** है। कपड़े बालकनी या अंदर सुखाना बेहतर होगा।`
+            : (detectedLang === 'english'
+               ? `Drying laundry outside is **not recommended** today. Rain probability is **${rainProb}%** with humidity at ${humidity}%. Dry clothes indoors instead.`
+               : `${op_hg}**Nahi**, chhat par kapde sukhana safe nahi rahega. Baarish ki probability **${rainProb}%** hai aur humidity **${humidity}%** hai. Behtar hai balcony ya indoor dry karein.`);
+          advisories.push("कपड़े भीगने का डर है, सुरक्षित शेड में रखें।");
+        } else {
+          answer = detectedLang === 'hindi'
+            ? `**हाँ, बिल्कुल!** आज छत पर कपड़े आराम से सूख जाएंगे। धूप अच्छी है, बारिश का खतरा मात्र **${rainProb}%** है और तापमान **${temp}°C** है।`
+            : (detectedLang === 'english'
+               ? `**Yes, absolutely!** Today is optimal for drying laundry outside. Rain chance is minimal (${rainProb}%) and temperatures hover near **${temp}°C**.`
+               : `${op_hg}**Haan, bilkul!** Chhat par kapde aaram se sukha sakte ho. Baarish ke chances sirf **${rainProb}%** hain aur dhoop ke sath temperature **${temp}°C** rahega.`);
+          advisories.push("धूप और हवा अनुकूल है, कपड़े 2-3 घंटे में सूख जाएंगे।");
+        }
+        followups = ["Baarish kitne baje tak aayegi?", "Kal car wash karwa sakte hain?", "Morning walk ka mausam"];
+      } else if (intent === 'car_wash') {
         if (isRainy) {
-          advisories.push("बारिश की संभावना को देखते हुए छाता या रेनकोट साथ रखें।");
+          answer = `${op_hg}Car/bike wash abhi **postpone karein**. Baarish ke **${rainProb}% chances** hain, geeli sadak se gaadi dobara gandi ho sakti hai.`;
         } else {
-          advisories.push("मौसम सामान्य और सुखद बना हुआ है।");
+          answer = `${op_hg}**Haan, gaadi wash karwa sakte hain!** Aane wale dino mein mausam dry aur clear hai, baarish ka risk sirf **${rainProb}%** hai.`;
         }
+        followups = ["Chhat par kapde sukha lu?", "Kal baarish hogi kya?", "7-day forecast"];
+      } else if (intent === 'morning_walk') {
+        if (isRainy) {
+          answer = `${op_hg}Walk ke dauran boonda-baandi ka risk (~${rainProb}%) hai. Umbrella sath rakhein ya indoor exercise karein.`;
+        } else {
+          answer = `${op_hg}**Morning walk ke liye mausam shandaar hai!** Sukhad temperature (~${temp}°C), hawa ${wind} km/h aur aasmaan saaf rahega.`;
+        }
+        followups = ["Dopahar me dhoop kitni tez hogi?", "Kal baarish ka kya chance hai?", "Kapde sukha sakte hain?"];
+      } else if (intent === 'outdoor_sports') {
+        if (isRainy) {
+          answer = `${op_hg}Ground par match ya cricket me **baarish ki wajah se interruption** aa sakta hai (Rain probability: **${rainProb}%**).`;
+        } else {
+          answer = `${op_hg}**Ground par khelne ke liye mausam ekdam solid hai!** Baarish ka koi darr nahi hai (sirf ${rainProb}%) aur pitch dry rahegi.`;
+        }
+        followups = ["Shaam ko baarish hogi?", "Temperature kitna rahega?", "Highway trip"];
+      } else if (detectedLang === 'hindi') {
+        answer = `🌤️ **${targetCity.name} मौसम विश्लेषण:**\nवर्तमान तापमान **${temp}°C** (महसूस: ${appTemp}°C) है। आर्द्रता ${humidity}% और हवा की गति ${wind} km/h है। बारिश की संभावना लगभग **${rainProb}%** है।`;
+        advisories.push(isRainy ? "बारिश की संभावना को देखते हुए छाता साथ रखें।" : "मौसम सामान्य और बाहरी गतिविधियों के लिए अनुकूल है।");
+        followups = [`${targetCity.name} में बारिश कब होगी?`, "कपड़े सुखा सकते हैं?", "कल का मौसम"];
+      } else if (detectedLang === 'english') {
+        answer = `🌤️ **${targetCity.name} Live Weather Update:**\nCurrent temperature is **${temp}°C** (feels like ${appTemp}°C). Humidity is ${humidity}% with winds at ${wind} km/h. Rain probability is **${rainProb}%**.`;
+        advisories.push(isRainy ? "Carry rain gear; showers likely." : "Clear weather conditions; optimal for outdoor movement.");
+        followups = ["Will it rain today?", "Can I dry laundry outside?", "3-day forecast"];
       } else {
-        answer = `🌤️ **${targetCity.name} Live Weather Update:**\n${targetCity.name} mein current temperature **${temp}°C** (feels like ${appTemp}°C) hai. Humidity ${humidity}% aur wind speed ${wind} km/h hai. Baarish ki probability lagbhag **${rainProb}%** hai.`;
-        if (persona === 'kisan') {
-          advisories.push(isRainy ? "🌾 Baarish ke chances hain, sinchai postpone karein." : "🌾 Sinchai aur khet ke dainik kaam ke liye mausam anukool hai.");
-        } else if (persona === 'yatri') {
-          advisories.push(isRainy ? "🚗 Sadak par paani bharaav ho sakta hai, savdhani se gaadi chalayein." : "🚗 Highway aur city travel ke liye perfect weather conditions hain.");
-        } else {
-          advisories.push(isRainy ? "☔ Baahar nikalte samay umbrella sath rakhein." : "☀️ Outdoor activities ke liye din bilkul clear aur accha rahega.");
-        }
+        answer = `${op_hg}**${targetCity.name}** mein current temperature **${temp}°C** (feels like ${appTemp}°C) hai. Humidity ${humidity}% aur wind speed ${wind} km/h hai. Baarish ki probability lagbhag **${rainProb}%** hai.`;
+        advisories.push(isRainy ? "☔ Baahar nikalte samay umbrella sath rakhein." : "☀️ Outdoor activities ke liye din khula aur accha rahega.");
+        followups = [`Kal ${targetCity.name} me baarish hogi?`, "Chhat par kapde sukha sakta hoon?", "Highway safar safe hai?"];
       }
 
       const weatherCard = {
@@ -318,6 +418,7 @@ class ChatController {
       };
 
       if (this.onWeatherUpdate) {
+        window.currentCity = targetCity.name;
         this.onWeatherUpdate(weatherCard);
       }
 
@@ -325,10 +426,8 @@ class ChatController {
         answer,
         null,
         advisories,
-        dialog === 'weather'
-          ? [`${targetCity.name} me baarish hogi?`, "7-Day Forecast", "Kisan agro advisory"]
-          : [`${targetCity.name} mein abhi mausam kaisa hai?`, `Kal ${targetCity.name} mein baarish?`, "Active alerts?"],
-        intentTag
+        followups,
+        intent
       );
 
     } catch (e) {
