@@ -30,9 +30,14 @@ WEATHER_KEYWORDS = [
     "wind", "hawa", "forecast", "alert", "warning", "cyclone", "toofan", "flood",
     "baad", "tsunami", "lightning", "bijli", "thunder", "hail", "fog",
     "kohra", "kohara", "aqi", "uv", "umbrella", "chhata", "sinchai", "irrigate",
-    "irrigation", "khet", "fasal", "crop", "spray", "pesticide", "travel", "safar",
-    "highway", "flight", "road", "drive", "visibility", "heatwave", "loo",
-    "drought", "sukha", "storm", "andhi", "nwp", "imd", "radar", "climate",
+    "irrigation", "khet", "kheti", "fasal", "faslein", "crop", "crops", "farming",
+    "kisan", "spray", "pesticide", "rabi", "kharif", "zaid", "sarson", "gehun", "wheat",
+    "chana", "dhan", "soyabean", "aloo", "matar", "lahsun", "pyaz", "makka", "bajra",
+    "moong", "urad", "tarbooz", "kheera", "boye", "bona", "buwai", "lagaye", "lagayein",
+    "mahina", "mahine", "month", "months", "calendar", "october", "november", "december",
+    "january", "february", "march", "april", "may", "june", "july", "august", "september",
+    "season", "travel", "safar", "highway", "flight", "road", "drive", "visibility",
+    "heatwave", "loo", "drought", "sukha", "storm", "andhi", "nwp", "imd", "radar", "climate",
     "snow", "barf", "cloud", "badal", "sunny", "dhoop", "overcast",
     "os", "monsoon", "precip", "windchill", "feels like", "kapde", "sukha",
     "car wash", "dhona", "walk", "jogging", "cricket", "match", "khel", "kitne baje",
@@ -64,7 +69,11 @@ def _contains_any(text: str, words) -> bool:
 def infer_persona_from_query(message: str, fallback: PersonaType) -> PersonaType:
     """Auto-infers persona from query terms."""
     lower = message.lower()
-    if _contains_any(lower, ["irrigate", "sinchai", "crop", "fasal", "khet", "kisan", "spray", "pesticide", "farmer"]):
+    if _contains_any(lower, [
+        "irrigate", "sinchai", "crop", "crops", "fasal", "khet", "kheti", "kisan",
+        "spray", "pesticide", "farmer", "boye", "buwai", "rabi", "kharif", "zaid",
+        "sarson", "gehun", "chana", "dhan", "mahine"
+    ]):
         return PersonaType.FARMER
     if _contains_any(lower, ["travel", "safar", "drive", "road", "flight", "highway", "yatri", "visibility", "bike"]):
         return PersonaType.TRAVELER
@@ -79,7 +88,7 @@ def classify_dialog_intent(message: str) -> str:
     # Check if pure greeting
     for pat in GREETING_PATTERNS:
         if re.search(pat, lower):
-            # If weather keywords also present (e.g. "Hi, Indore weather?"), treat as weather
+            # If weather/farming keywords also present, treat as weather
             if not _contains_any(lower, WEATHER_KEYWORDS):
                 return "greeting"
             
@@ -89,8 +98,13 @@ def classify_dialog_intent(message: str) -> str:
 
     weather_hit = _contains_any(lower, WEATHER_KEYWORDS)
     city_hit = any(re.search(rf"\b{re.escape(city)}\b", lower) for city in KNOWN_LOCATIONS)
+    agri_hit = _contains_any(lower, [
+        "kheti", "fasal", "boye", "bona", "buwai", "lagaye", "crop", "crops",
+        "farming", "rabi", "kharif", "zaid", "sarson", "gehun", "chana", "dhan",
+        "soyabean", "aloo", "mahine", "mahina", "october", "garmi", "thandi"
+    ])
     
-    if weather_hit or city_hit:
+    if weather_hit or city_hit or agri_hit:
         return "weather"
 
     # Contextual check for short follow-ups
@@ -119,19 +133,21 @@ def parse_user_query(message: str, session_data: Optional[Dict[str, Any]] = None
         lang = LanguageType.HINDI
     else:
         hinglish_markers = [
-            "kya", "hai", "hoga", "hogi", "batao", "kaise", "kaisa", "mein", "aaj",
+            "kya", "hai", "hoga", "hogi", "batao", "kaise", "kaisa", "mein", "me", "se", "aaj",
             "kal", "baarish", "barish", "mausam", "khet", "sinchai", "safar", "jaana",
             "chahiye", "rahega", "kitna", "kitni", "bataiye", "hona", "dhoop", "garmi",
             "thand", "karein", "karu", "karoon", "khatra", "toofan", "sunte", "namaste",
-            "kapde", "sukha", "dhona", "chhat", "gaadi"
+            "kapde", "sukha", "dhona", "chhat", "gaadi", "kheti", "khati", "fasal", "faslein",
+            "mahina", "mahine", "kon", "konsi", "kaun", "kaunsi", "kara", "kare", "boye",
+            "buwai", "lagaye", "lagayein", "thandi", "sardi", "barsat", "saal", "pure"
         ]
         words = re.findall(r'[a-zA-Z]+', lower)
         has_hinglish = any(w in hinglish_markers for w in words)
         
         english_indicators = [
-            "what", "will", "how", "is", "the", "weather", "temperature", "forecast",
+            "what", "will", "how", "the", "weather", "temperature", "forecast",
             "should", "can", "heavy", "rain", "today", "tomorrow", "check", "tell",
-            "alert", "humidity", "wind", "storm", "chance", "show", "radar", "clothes", "dry"
+            "alert", "humidity", "wind", "storm", "chance", "show", "radar", "clothes", "dry", "grow"
         ]
         has_english = any(w in english_indicators for w in words)
 
@@ -188,6 +204,17 @@ def parse_user_query(message: str, session_data: Optional[Dict[str, Any]] = None
         intent = "multi_day"
     elif any(w in lower for w in ["alert", "warning", "khatra", "cyclone", "toofan", "tsunami", "flood", "baad", "चेतावनी", "अलर्ट", "तूफान", "बाढ़"]):
         intent = "disaster_alert"
+    elif any(w in lower for w in [
+        "kon se kheti", "konsi kheti", "kheti kare", "kheti karein", "konsi fasal", "kon si fasal",
+        "kya boye", "kya boyen", "kya lagaye", "kya lagayein", "crop calendar", "crops to grow",
+        "which crop", "fasal boye", "fasal lagaye", "rabi", "kharif", "zaid", "all months",
+        "har mahine", "mahine me", "mahina me", "october me", "oct me", "garmi me", "thandi me",
+        "sardi me", "barsat me", "fasal ki buwai", "kheti ki jankari", "kheti detail",
+        "kaun si kheti", "kaun si fasal", "kaunsi kheti", "kaunsi fasal", "fasal laga",
+        "कौन सी खेती", "कौन सी फसल", "क्या बोएं", "क्या लगाएं", "रबी", "खरीफ", "जायद",
+        "किस महीने", "अक्टूबर", "नवंबर", "दिसंबर", "गर्मी में", "सर्दी में", "फसल कैलेंडर", "खेती"
+    ]):
+        intent = "crop_calendar"
     elif any(w in lower for w in ["irrigate", "sinchai", "crop", "fasal", "khet", "kisan", "spray", "pesticide", "सिंचाई", "फसल", "खेत", "किसान", "कीटनाशक"]):
         intent = "agriculture"
     elif any(w in lower for w in ["travel", "safar", "jaana", "drive", "road", "flight", "highway", "bike se", "car se", "यात्रा", "सफर", "हाईवे", "सड़क"]):
@@ -240,6 +267,246 @@ def format_multi_day_summary(daily: List[DailyForecast], lang: LanguageType) -> 
         else:
             lines.append(f"• **{d.date}:** {d.condition}, Temp {round(d.max_temp)}°/{round(d.min_temp)}°C, Baarish risk ~{d.precipitation_probability}%")
     return "\n".join(lines)
+
+def _build_crop_calendar_guide(query: str, loc: str, temp: int, rain_prob: int, lang: LanguageType) -> str:
+    q = query.lower()
+    
+    is_all_months = any(w in q for w in [
+        "all months", "har mahine", "all season", "calendar", "sab mahine", "12 mahine",
+        "pure saal", "calender", "कैलेंडर", "पूरे साल", "सभी महीने", "12 महीने", "पूरा साल", "हर महीने"
+    ])
+    is_summer = any(w in q for w in [
+        "garmi", "summer", "zaid", "dhoop", "march", "april", "may", "june",
+        "मई", "जून", "मार्च", "अप्रैल", "गर्मी", "जायद", "धूप"
+    ])
+    is_winter = any(w in q for w in [
+        "thandi", "sardi", "winter", "november", "december", "january",
+        "नवंबर", "दिसंबर", "जनवरी", "ठंड", "सर्दी", "ठंडी", "शीतकालीन"
+    ])
+    is_monsoon = any(w in q for w in [
+        "barsat", "monsoon", "kharif", "july", "august", "baarish me",
+        "जुलाई", "अगस्त", "बरसात", "खरीफ", "बारिश में"
+    ])
+
+    if is_all_months:
+        if lang == LanguageType.HINDI:
+            return (
+                f"🌾 **भारत का संपूर्ण 12 महीने का कृषि व फसल कैलेंडर (Agro-Calendar):**\n\n"
+                f"भारतीय कृषि को मौसम के अनुसार 3 प्रमुख चक्रों में बांटा गया है:\n\n"
+                f"1. ❄️ **रबी फसलें (Rabi: अक्टूबर से मार्च):**\n"
+                f"• **बुवाई (अक्टूबर - नवंबर):** गेहूं (Wheat), सरसों (Mustard), चना (Gram), मटर (Peas), आलू (Potato), जौ, मसूर, लहसुन व प्याज।\n"
+                f"• **देखभाल (दिसंबर - जनवरी):** सिंचाई, खाद प्रबंधन, पाले (Frost) से सुरक्षा।\n"
+                f"• **कटाई (फरवरी - मार्च):** सरसों, चना और गेहूं की कटाई।\n\n"
+                f"2. ☀️ **जायद / गर्मी की फसलें (Zaid: मार्च से जून):**\n"
+                f"• **बुवाई (मार्च - अप्रैल):** मूंग (Moong), उड़द, तरबूज, खरबूजा, खीरा, ककड़ी, भिंडी, लौकी, तोरई, कद्दू (60 दिन में तैयार)।\n"
+                f"• **मई - जून:** हरी खाद (ढैंचा) व गहरी जुताई।\n\n"
+                f"3. 🌧️ **खरीफ / मानसून फसलें (Kharif: जून से अक्टूबर):**\n"
+                f"• **बुवाई (जून - जुलाई):** धान (चावल), सोयाबीन, मक्का, बाजरा, ज्वार, मूंगफली, अरहर (तुअर), कपास।\n"
+                f"• **कटाई (सितंबर - अक्टूबर):** खरीफ कटाई और रबी की तैयारी।\n\n"
+                f"💡 **वर्तमान स्थिति ({loc}):** तापमान **{temp}°C** और बारिश **{rain_prob}%** है। अभी रबी सीजन (सरसों, मटर, चना, आलू) की बुवाई का सबसे स्वर्णिम समय है!"
+            )
+        elif lang == LanguageType.ENGLISH:
+            return (
+                f"🌾 **Complete 12-Month Indian Agricultural Crop Calendar:**\n\n"
+                f"Indian farming is structured around 3 distinct agro-climatic seasons:\n\n"
+                f"1. ❄️ **Rabi Season (Winter: October – March):**\n"
+                f"• **Sowing (Oct-Nov):** Wheat, Mustard, Chickpea (Gram), Green Peas, Potato, Barley, Lentil, Garlic, Onion.\n"
+                f"• **Harvesting (Feb-Mar):** Mustard, pulses, and grain harvest.\n\n"
+                f"2. ☀️ **Zaid Season (Summer: March – June):**\n"
+                f"• **Sowing (Mar-Apr):** Moong dal (Green Gram), Urad, Watermelon, Muskmelon, Cucumber, Okra, Bottle gourd.\n"
+                f"• **Harvesting (May-Jun):** High-profit quick cash crops.\n\n"
+                f"3. 🌧️ **Kharif Season (Monsoon: June – October):**\n"
+                f"• **Sowing (Jun-Jul):** Paddy (Rice), Soybean, Maize, Pearl Millet (Bajra), Sorghum, Groundnut, Pigeon Pea (Arhar), Cotton.\n"
+                f"• **Harvesting (Sep-Oct):** Kharif harvest followed by winter seedbed preparation.\n\n"
+                f"💡 **Current Field Status ({loc}):** Ambient temperature {temp}°C with {rain_prob}% rain risk offers optimal soil conditions for Rabi sowing!"
+            )
+        else:
+            return (
+                f"🌾 **Bharat Ka Complete 12-Mahine Ka Kheti & Crop Calendar:**\n\n"
+                f"Desh me kheti ko 3 mukhya seasons me divide kiya gaya hai:\n\n"
+                f"1. ❄️ **Rabi Season (Thandi / Winter: October se March):**\n"
+                f"• **October - November (Buwai):** Gehun (Wheat), Sarson (Mustard), Chana (Gram), Matar (Peas), Aloo (Potato), Jau, Masoor, Lahsun aur Pyaz.\n"
+                f"• **December - January:** CRI stage par sinchai, nindai-gudai, aur pala (frost) se bachav.\n"
+                f"• **February - March:** Sarson, chana aur gehun ki paki hui fasal ki katai.\n\n"
+                f"2. ☀️ **Zaid Season (Garmi / Summer: March se June):**\n"
+                f"• **March - April (Buwai):** Moong, Urad, Tarbooz, Kharbooja, Kheera, Kakdi, Bhindi, Lauki, Tinda, Kaddu (60 din me ready hone wali faslein).\n"
+                f"• **May - June:** Kam paani me pakne wali faslein aur khet ki solarization.\n\n"
+                f"3. 🌧️ **Kharif Season (Barsat / Monsoon: June se October):**\n"
+                f"• **June - July (Buwai):** Dhan (Paddy), Soyabean, Makka, Bajra, Jowar, Moongphali, Arhar (Tur), Kapas (Cotton).\n"
+                f"• **September - October (Katai):** Kharif ki katai aur agle Rabi season ki taiyari.\n\n"
+                f"💡 **Abhi Ka Status:** {loc} mein abhi temperature **{temp}°C** hai. Yeh waqt Rabi faslon (Khas taur par Sarson, Matar, Chana aur Aloo) ke liye sabse best hai!"
+            )
+
+    elif is_summer:
+        if lang == LanguageType.HINDI:
+            return (
+                f"☀️ **गर्मी (जायद / Summer Season: मार्च से जून) में कौन सी खेती करें:**\n\n"
+                f"गर्मी के मौसम में कम समय (60 दिन) में पकने वाली और अधिक मुनाफा देने वाली फसलें लगानी चाहिए:\n\n"
+                f"1. **दलहनी फसलें (Pulses):**\n"
+                f"• **मूंग (Moong):** पूसा विशाल, IPM 205-7, SML 668 (60-65 दिन में 10-12 क्विंटल/हेक्टेयर उपज)।\n"
+                f"• **उड़द (Urad):** पंत उड़द 31, शेखर-2।\n\n"
+                f"2. **बेलवाली नकदी फसलें (Cucurbits / भारी मुनाफा):**\n"
+                f"• **तरबूज व खरबूजा:** गर्मी में सबसे ज्यादा बिकने वाली फसलें।\n"
+                f"• **खीरा व ककड़ी:** 40-45 दिन में उत्पादन शुरू हो जाता है।\n"
+                f"• **सब्जियां:** भिंडी, लौकी, तोरई, करेला, कद्दू, और ग्वारफली।\n\n"
+                f"💧 **सिंचाई व प्रबंधन:** गर्मी में तेज धूप के कारण 4 से 6 दिन के अंतराल पर शाम के समय हल्की सिंचाई करें या ड्रिप सिस्टम अपनाएं।"
+            )
+        elif lang == LanguageType.ENGLISH:
+            return (
+                f"☀️ **Recommended Crops for Summer (Zaid Season: March – June):**\n\n"
+                f"During summer, fast-maturing (60-70 days) and high-profit cash crops are optimal:\n\n"
+                f"1. **High-Yield Pulses:**\n"
+                f"• **Summer Moong (Green Gram):** Pusa Vishal, IPM 205-7 (nitrogen-fixing, takes only 60 days).\n"
+                f"• **Summer Urad (Black Gram):** Pant Urad 31.\n\n"
+                f"2. **Cash Cucurbits & Vegetables:**\n"
+                f"• **Watermelon & Muskmelon:** High commercial demand throughout peak heat.\n"
+                f"• **Cucumber & Gherkins:** Quick harvesting begins in 40-45 days.\n"
+                f"• **Vegetables:** Okra (Bhindi), Bottle gourd (Lauki), Bitter gourd, Pumpkin.\n\n"
+                f"💧 **Water Management:** Irrigate every 4-5 days during evening hours or adopt drip irrigation to conserve soil moisture."
+            )
+        else:
+            return (
+                f"☀️ **Garmi (Zaid Season / March-June) Me Ki Jane Wali Best Kheti:**\n\n"
+                f"Garmi ke dino me kam paani aur kam samay (60 din) me badiya munafa dene wali faslein lagayein:\n\n"
+                f"1. **Dalhan Faslein (Pulses):**\n"
+                f"• **Moong:** Pusa Vishal, IPM 205-7, SML 668 (Khet ki urvara shakti badhati hai aur 60 din me ready).\n"
+                f"• **Urad:** Pant Urad 31.\n\n"
+                f"2. **Cash Crops & Sabziyan (Bhaari Demand):**\n"
+                f"• **Tarbooz (Watermelon) & Kharbooja:** Garmi me sabse zyada bikne wali aur cash return dene wali fasal.\n"
+                f"• **Kheera & Kakdi:** 40 se 45 din me daily income shuru ho jati hai.\n"
+                f"• **Sabziyan:** Bhindi, Lauki, Torai, Karela, Kaddu aur Chawli.\n\n"
+                f"💧 **Sinchai Tip:** Dhoop tez hone ki wajah se 4-5 din me shaam ke waqt light watering karein."
+            )
+
+    elif is_winter:
+        if lang == LanguageType.HINDI:
+            return (
+                f"❄️ **सर्दियों (रबी / Winter Season: अक्टूबर से मार्च) में कौन सी खेती करें:**\n\n"
+                f"सर्दियों में भारत की सबसे मुख्य खाद्यान्न और तिलहनी फसलें उगाई जाती हैं:\n\n"
+                f"1. **मुख्य अनाज व तिलहन:**\n"
+                f"• **गेहूं (Wheat):** शरबती, GW 322, HD 2967, लोक-1, राज 4037 (बुवाई: 25 अक्टूबर से 25 नवंबर)।\n"
+                f"• **सरसों (Mustard):** पूसा बोल्ड, गिरिराज, आरएच 749, पायनियर 45S46 (1-20 अक्टूबर बुवाई)।\n"
+                f"• **चना (Gram):** जेजी 11, जाकी 9218, काबुली डॉलर चना।\n"
+                f"• **जौ (Barley) व मसूर:** कम पानी वाली जमीनों के लिए उत्तम।\n\n"
+                f"2. **रबी सब्जियां व नकदी फसलें:**\n"
+                f"• **आलू व मटर:** कुफरी ज्योति आलू और आजाद पी-1 हरी मटर।\n"
+                f"• **लहसुन व प्याज:** रबी सीजन में लहसुन (रियावन / ऊटी) और प्याज की खेती।\n"
+                f"• **सब्जियां:** फूलगोभी, पत्तागोभी, गाजर, मूली, पालक, मेथी और धनिया।\n\n"
+                f"💡 **प्रबंधन:** दिसंबर-जनवरी में पाला (Frost) पड़ने पर खेत की मेड़ों पर धुआं करें और हल्की सिंचाई रखें।"
+            )
+        elif lang == LanguageType.ENGLISH:
+            return (
+                f"❄️ **Recommended Crops for Winter (Rabi Season: October – March):**\n\n"
+                f"Winter is the powerhouse season for Indian foodgrains and oilseeds:\n\n"
+                f"1. **Major Cereals & Oilseeds:**\n"
+                f"• **Wheat:** GW 322, HD 2967, Sharbati, HI 1544 (Sowing window: late Oct to late Nov).\n"
+                f"• **Mustard:** Pusa Bold, Giriraj, Pioneer 45S46 (Peak sowing early-mid Oct).\n"
+                f"• **Chickpea (Gram):** JG 11, Dollar Kabuli Chana.\n"
+                f"• **Barley & Lentils:** Ideal for low-irrigation soil profiles.\n\n"
+                f"2. **Winter Vegetables & Cash Crops:**\n"
+                f"• **Potato & Peas:** Kufri Jyoti potato & Azad P-1 table green peas.\n"
+                f"• **Garlic & Onion:** High-value winter bulbs.\n"
+                f"• **Greens:** Cauliflower, Cabbage, Carrot, Radish, Spinach, Fenugreek.\n\n"
+                f"💡 **Management:** Keep fields lightly irrigated in peak winter (Dec-Jan) to protect tender shoots from ground frost."
+            )
+        else:
+            return (
+                f"❄️ **Thandi / Sardi (Rabi Season: October se March) Ki Best Kheti:**\n\n"
+                f"Sardi ke mausam me desh ki sabse mukhya profitable faslein ugayi jati hain:\n\n"
+                f"1. **Mukhya Faslein:**\n"
+                f"• **Gehun (Wheat):** Sharbati, GW 322, HD 2967, Lok-1 (Buwai 25 October se November aakhiri tak).\n"
+                f"• **Sarson (Mustard):** Pusa Bold, Giriraj, Pioneer 45S46 (Tel ki matra aur daana tagda).\n"
+                f"• **Chana (Gram):** Desi Chana (JG 11) aur Dollar/Kabuli chana.\n"
+                f"• **Matar (Peas):** Azad P-1, Arkel (Sabzi ke liye market me high rate).\n\n"
+                f"2. **Cash Crops & Sabziyan:**\n"
+                f"• **Aloo (Potato):** Kufri Jyoti, Kufri Bahar.\n"
+                f"• **Lahsun & Pyaz:** Riyawan / Ooty garlic aur winter onion.\n"
+                f"• **Sabziyan:** Gobi, Gajar, Mooli, Palak, Methi, aur Dhania."
+            )
+
+    elif is_monsoon:
+        if lang == LanguageType.HINDI:
+            return (
+                f"🌧️ **बरसात (खरीफ / Monsoon Season: जून से अक्टूबर) में कौन सी खेती करें:**\n\n"
+                f"मानसून के आगमन के साथ खरीफ की मुख्य फसलें बोई जाती हैं:\n\n"
+                f"1. **प्रमुख अनाज व दलहन:**\n"
+                f"• **धान (Paddy/चावल):** बासमती (पूसा 1121, 1509), आईआर-64, सुगंधा (जून में नर्सरी, जुलाई में रोपाई)।\n"
+                f"• **सोयाबीन:** जेएस 95-60, जेएस 20-34, एनआरसी 37 (20 जून से 10 जुलाई तक बुवाई)।\n"
+                f"• **मक्का (Maize):** गंगा-11, बायो 9681।\n"
+                f"• **दलहन व तिलहन:** अरहर (तुअर), मूंगफली, उड़द, मूंग और कपास (कॉटन)।"
+            )
+        else:
+            return (
+                f"🌧️ **Barsat / Monsoon (Kharif Season: June se October) Ki Mukhya Kheti:**\n\n"
+                f"Monsoon aate hi Kharif faslon ki buwai shuru hoti hai:\n\n"
+                f"1. **Mukhya Faslein:**\n"
+                f"• **Dhan (Paddy):** Pusa 1121, 1509, IR-64 (June me nursery, July me ropayi).\n"
+                f"• **Soyabean:** JS 95-60, JS 20-34, NRC 37 (Bhaari utpadan).\n"
+                f"• **Makka (Maize):** Ganga-11, Bio 9681.\n"
+                f"• **Kapas, Arhar & Moongphali:** Bumper cash return wali faslein."
+            )
+
+    else: # Default: October / Current Month Rabi Sowing
+        if lang == LanguageType.HINDI:
+            return (
+                f"🌾 **अक्टूबर (October / इस महीने) में कौन सी खेती करें — रबी सीजन का स्वर्णिम समय:**\n\n"
+                f"अक्टूबर का महीना भारतीय किसानों के लिए साल का सबसे महत्वपूर्ण समय होता है, क्योंकि इसी महीने **रबी की बुवाई** शुरू होती है:\n\n"
+                f"1. **सरसों (Mustard - 1 से 20 अक्टूबर बुवाई का पीक टाइम):**\n"
+                f"• किस्में: पूसा बोल्ड, गिरिराज, RH 749, पायनियर 45S46।\n"
+                f"• तापमान 25-30°C होने पर सरसों का जमाव (germination) सबसे शानदार होता है।\n\n"
+                f"2. **अगेती हरी मटर (Green Peas - बंपर मुनाफा):**\n"
+                f"• किस्में: आजाद पी-1, अर्किल, काशी नंदिनी।\n"
+                f"• 60 दिन में पहली तुड़ाई शुरू हो जाती है और त्योहारी सीजन में भाव 60-80 रु/किलो तक मिलता है।\n\n"
+                f"3. **अगेती आलू (Potato):**\n"
+                f"• किस्में: कुफरी पुखराज, कुफरी ज्योति। 10 से 25 अक्टूबर के बीच रोपाई करें।\n\n"
+                f"4. **चना (Chickpea/Gram):**\n"
+                f"• अक्टूबर के दूसरे पखवाड़े (15-30 Oct) में देसी व काबुली चने की बुवाई करें।\n\n"
+                f"5. **लहसुन व प्याज की नर्सरी:**\n"
+                f"• लहसुन की कलियों की बुवाई करें और रबी प्याज की पौध तैयार करने के लिए नर्सरी डालें।\n\n"
+                f"6. **गेहूं (Wheat) की तैयारी:**\n"
+                f"• सोयाबीन/धान कटाई के बाद खेत की पलेवा (रौनी) करें। मुख्य बुवाई 25 अक्टूबर से नवंबर तक चलेगी।\n\n"
+                f"📍 **{loc} मौसम लाभ:** वर्तमान में {loc} में तापमान **{temp}°C** और बारिश का जोखिम **{rain_prob}%** है। खेत की जुताई और बीजों के अंकुरण के लिए यह मौसम एकदम आदर्श है!"
+            )
+        elif lang == LanguageType.ENGLISH:
+            return (
+                f"🌾 **October (This Month) Agricultural Sowing Guide — The Rabi Gold Window:**\n\n"
+                f"October is the single most critical sowing month in Indian agriculture as the **Rabi Season** kicks off:\n\n"
+                f"1. **Mustard (Sarson - Peak Window: Oct 1 to 20):**\n"
+                f"• Top Varieties: Pusa Bold, Giriraj, RH 749, Pioneer 45S46.\n"
+                f"• Optimal germination happens when ambient temperatures hover around 25-30°C.\n\n"
+                f"2. **Early Table Green Peas (Matar - High Commercial Profit):**\n"
+                f"• Varieties: Azad P-1, Arkel, Kashi Nandini.\n"
+                f"• Ready for harvest in 60-65 days, yielding premium early-market prices.\n\n"
+                f"3. **Early Potato (Aloo):**\n"
+                f"• Varieties: Kufri Pukhraj, Kufri Jyoti. Plant tubers between Oct 10 and Oct 25.\n\n"
+                f"4. **Gram / Chickpea (Chana):**\n"
+                f"• Ideal sowing starts from mid-October (Oct 15-30) for both Desi and Kabuli strains.\n\n"
+                f"5. **Garlic & Winter Onion:**\n"
+                f"• Sow garlic cloves and establish Rabi onion seedbed nurseries.\n\n"
+                f"6. **Wheat Pre-sowing Preparation:**\n"
+                f"• Irrigate fields after Kharif harvest (palewa) to prepare fine seedbeds. Wheat sowing begins Oct 25 into November.\n\n"
+                f"📍 **{loc} Meteorological Fit:** Current temperature ({temp}°C) and low rain risk ({rain_prob}%) provide near-perfect conditions for seed germination!"
+            )
+        else:
+            return (
+                f"🌾 **October (Is Mahine) Me Kon Si Kheti Karein — Rabi Ka Sabse Best Time:**\n\n"
+                f"October ka mahina kheti ke liye saal ka sabse profitable mahina hota hai kyunki abhi **Rabi faslon ki buwai** shuru hoti hai:\n\n"
+                f"1. **Sarson (Mustard - 1 se 20 October Peak Time):**\n"
+                f"• Best Kismein: Pusa Bold, Giriraj, RH 749, Pioneer 45S46.\n"
+                f"• Is samay mitti ka taapman sarson ke beej jamne (germination) ke liye 100% perfect hai.\n\n"
+                f"2. **Ageti Hari Matar (Green Peas - Bumper Munafa):**\n"
+                f"• Kismein: Azad P-1, Arkel, Kashi Nandini.\n"
+                f"• 60 din me pehli tudai shuru ho jati hai aur market me sabse uncha rate milta hai.\n\n"
+                f"3. **Ageti Aloo (Potato):**\n"
+                f"• Kismein: Kufri Pukhraj, Kufri Jyoti. 10 se 25 October ke beech khet me ropayi karein.\n\n"
+                f"4. **Chana (Gram):**\n"
+                f"• 15 October ke baad Desi Chana (JG 11) aur Dollar Chana ki buwai ka right time hai.\n\n"
+                f"5. **Lahsun & Pyaz Ki Kheti:**\n"
+                f"• Lahsun ki kaliyan boyein aur sardi ke pyaz ki nursery dalein.\n\n"
+                f"6. **Gehun (Wheat) Ki Taiyari:**\n"
+                f"• Soyabean/Dhan katai ke baad khet me palewa (paani) lagayein. Gehun ki buwai 25 October se shuru hogi.\n\n"
+                f"📍 **{loc} Live Mausam Fit:** Abhi **{loc}** me temperature **{temp}°C** hai aur baarish na ke barabar (**{rain_prob}%**) hai. Beej jamne aur khet ki jotai ke liye mausam ekdam solid hai!"
+            )
 
 # ==============================================================================
 # Conversational Synthesis
@@ -487,7 +754,13 @@ def _generate_dynamic_nlu_response(
             body = f"{op_hg}**{loc} ke aane wale dino ka haal:**\n\n{daily_breakdown}\n\nAgle 2-3 din temperature lagbhag **{temp}°C** ke aas-paas float karega."
 
     # ==========================================================================
-    # 8. Agriculture / Irrigation Intent
+    # 8. Crop Calendar & Seasonal Farming / Sowing Guide
+    # ==========================================================================
+    elif intent == "crop_calendar":
+        body = _build_crop_calendar_guide(query, loc, temp, rain_prob, lang)
+
+    # ==========================================================================
+    # 9. Agriculture / Irrigation Intent
     # ==========================================================================
     elif intent == "agriculture":
         if rain_prob > 45 or weather.precipitation > 2.0:

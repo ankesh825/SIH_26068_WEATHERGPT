@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherGPT (SIH26068) - Official High-Impact Presentation Video</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030712;
+      --card-bg: rgba(15, 23, 42, 0.88);
+      --card-border: rgba(56, 189, 248, 0.25);
+      --accent-cyan: #38bdf8;
+      --accent-blue: #3b82f6;
+      --accent-amber: #fbbf24;
+      --accent-green: #34d399;
+      --accent-red: #ef4444;
+      --accent-purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      overflow-x: hidden;
+    }
+
+    /* Video Frame Container (16:9 Standard Cinema Ratio) */
+    .video-viewport {
+      width: 100%;
+      max-width: 1120px;
+      aspect-ratio: 16 / 9;
+      background: #020617;
+      border-radius: 20px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.95), 0 0 50px rgba(56, 189, 248, 0.18);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Canvas for animated particle space & radar sweeps */
+    #stageCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Overlay Scenes Container */
+    .scene-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      padding: 28px 42px 75px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.96) translateY(8px);
+      transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .scene-layer.active {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+
+    /* Tags & Headings */
+    .scene-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      padding: 4px 14px;
+      border-radius: 30px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      margin-bottom: 10px;
+    }
+    .scene-title {
+      font-size: 2.15rem;
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 30%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .scene-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 820px;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    /* Common Card Styles */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+    }
+
+    /* Scene 1: Chaos Metrics */
+    .chaos-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      max-width: 860px;
+      width: 100%;
+      margin-top: 6px;
+    }
+    .chaos-item {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      padding: 12px;
+      border-radius: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #f87171;
+      text-align: left;
+    }
+    .chaos-item b {
+      display: block;
+      font-size: 1.15rem;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    /* Scene 3: Comparison Battle Matrix */
+    .comparison-table {
+      width: 100%;
+      max-width: 890px;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 14px;
+      overflow: hidden;
+      font-size: 0.82rem;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      text-align: left;
+    }
+    .comparison-table th, .comparison-table td {
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .comparison-table th {
+      background: rgba(30, 41, 59, 0.9);
+      font-weight: 800;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+    }
+    .comp-bad { color: #f87171; font-weight: 600; }
+    .comp-good { color: #34d399; font-weight: 700; }
+
+    /* Scene 4: Pipeline Architecture Diagram */
+    .arch-flow-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      max-width: 950px;
+      width: 100%;
+      margin: 8px 0;
+    }
+    .arch-node {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      flex: 1;
+    }
+    .arch-node span:first-child { font-size: 1.15rem; }
+    .arch-node small { font-size: 0.65rem; color: #94a3b8; font-weight: 500; }
+    .arch-arrow { color: #38bdf8; font-size: 1rem; font-weight: 900; }
+
+    /* Scene 5: 4-Domain Persona Grid */
+    .persona-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      max-width: 950px;
+      width: 100%;
+    }
+    .persona-card {
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: left;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.3s;
+    }
+    .persona-card.kisan { border-color: rgba(52, 211, 153, 0.45); }
+    .persona-card.yatri { border-color: rgba(56, 189, 248, 0.45); }
+    .persona-card.nagrik { border-color: rgba(251, 191, 36, 0.45); }
+    .persona-card.disaster { border-color: rgba(239, 68, 68, 0.45); }
+    .persona-header { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.88rem; margin-bottom: 6px; }
+    .persona-bullets { font-size: 0.72rem; color: #cbd5e1; line-height: 1.4; list-style: none; }
+    .persona-bullets li { margin-bottom: 4px; position: relative; padding-left: 12px; }
+    .persona-bullets li::before { content: "•"; position: absolute; left: 0; color: var(--accent-cyan); font-weight: 900; }
+
+    /* Scene 6: Radar & Models */
+    .split-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      max-width: 900px;
+      width: 100%;
+      align-items: center;
+    }
+    .radar-circle-sim {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      position: relative;
+      overflow: hidden;
+      margin: 0 auto;
+      background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, rgba(2, 6, 23, 0.95) 75%);
+    }
+    .radar-sweep-hand {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 50%;
+      transform-origin: 0% 100%;
+      background: linear-gradient(45deg, rgba(56, 189, 248, 0.8) 0%, transparent 60%);
+      animation: sweepRadar 3s infinite linear;
+    }
+    @keyframes sweepRadar {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .radar-point {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
+    }
+
+    /* Scene 7: Grounding Inspector */
+    .grounding-box {
+      max-width: 740px;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      border-radius: 14px;
+      padding: 16px 20px;
+      text-align: left;
+    }
+    .grounding-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .grounding-row:last-child { border-bottom: none; }
+    .g-lbl { color: #94a3b8; font-weight: 600; }
+    .g-val { color: #f8fafc; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+    /* Scene 8: Benefits 4 Pillars */
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      max-width: 950px;
+      width: 100%;
+    }
+    .benefit-card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+    .benefit-icon { font-size: 1.8rem; margin-bottom: 6px; }
+    .benefit-title { font-weight: 800; font-size: 0.88rem; color: #fff; margin-bottom: 4px; }
+    .benefit-text { font-size: 0.72rem; color: #94a3b8; line-height: 1.35; }
+
+    /* Karaoke Subtitles Bar */
+    .subtitles-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(2, 6, 23, 0.9);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 8px 24px;
+      border-radius: 30px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fbbf24;
+      z-index: 10;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      max-width: 90%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Player Controls Bar */
+    .player-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 52px;
+      background: rgba(10, 16, 32, 0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      z-index: 20;
+    }
+    .ctrl-btn {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      font-size: 1.15rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .ctrl-btn:hover { color: var(--accent-cyan); transform: scale(1.1); }
+    .ctrl-btn.active { color: var(--accent-cyan); }
+    .progress-bar-container {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #34d399);
+      border-radius: 6px;
+    }
+    .time-disp {
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #94a3b8;
+    }
+
+    /* Top Action Bar */
+    .top-action-bar {
+      width: 100%;
+      max-width: 1120px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .btn-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-record {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+    }
+    .btn-record:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .btn-record.recording {
+      background: #ef4444;
+      animation: pulseRecord 1s infinite;
+    }
+    @keyframes pulseRecord { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    .scene-navigator { display: flex; gap: 5px; }
+    .scene-dot-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .scene-dot-btn.active {
+      background: var(--accent-cyan);
+      color: #020617;
+      border-color: var(--accent-cyan);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Bar -->
+  <div class="top-action-bar">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <a href="index.html" style="color:#94a3b8; text-decoration:none; font-size:0.85rem; font-weight:700;">← Back to App</a>
+      <span style="color:#475569;">•</span>
+      <span style="font-size:0.85rem; font-weight:800; color:#38bdf8;">🎬 WeatherGPT (SIH26068) Pitch Video</span>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <!-- Scene Quick Jumpers -->
+      <div class="scene-navigator">
+        <button class="scene-dot-btn active" onclick="jumpToScene(0)" title="1. Problem Gap">1</button>
+        <button class="scene-dot-btn" onclick="jumpToScene(1)" title="2. WeatherGPT Reveal">2</button>
+        <button class="scene-dot-btn" onclick="jumpToScene(2)" title="3. Why WeatherGPT is Best?">3</button>
+        <button class="scene-dot-btn" onclick="jumpToScene(3)" title="4. System Architecture">4</button>
+        <button class="scene-dot-btn" onclick="jumpToScene(4)" title="5. 4-Domain Intelligence">5</button>
+        <button class="scene-dot-btn" onclick="jumpToScene(5)" title="6. Doppler & Multi-Model NWP">6</button>
+        <button class="scene-dot-btn" onclick="jumpToScene(6)" title="7. Zero-Hallucination Grounding">7</button>
+        <button class="scene-dot-btn" onclick="jumpToScene(7)" title="8. Real-Life Benefits">8</button>
+        <button class="scene-dot-btn" onclick="jumpToScene(8)" title="9. Production Outro">9</button>
+      </div>
+
+      <!-- Record / Export Button -->
+      <button id="btnExport" class="btn-action btn-record" onclick="toggleScreenRecording()">
+        <span>🎥</span>
+        <span id="exportText">Export 1080p Video (.webm)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Video Viewport (16:9 Scale) -->
+  <div class="video-viewport" id="videoBox">
+    <canvas id="stageCanvas"></canvas>
+
+    <!-- Scene 1: The Problem & Last-Mile Translation Gap -->
+    <div class="scene-layer active" id="scene0">
+      <div class="scene-tag">⚡ Executive Summary &amp; Problem</div>
+      <h1 class="scene-title">The "Last-Mile Translation Gap"</h1>
+      <p class="scene-desc">India generates abundant, high-resolution meteorological intelligence (IMD &amp; NWP). But raw numbers fail ordinary citizens.</p>
+      
+      <div class="chaos-grid">
+        <div class="chaos-item">Barometric Pressure <b>1013.2 hPa</b></div>
+        <div class="chaos-item">Relative Humidity <b>82.4%</b></div>
+        <div class="chaos-item">WMO Weather Code <b>Code 65 (Rain)</b></div>
+        <div class="chaos-item">Wind Gust Velocity <b>14.2 km/h</b></div>
+      </div>
+
+      <div style="margin-top:16px; font-weight:800; color:#f87171; font-size:1.05rem; letter-spacing:0.04em;">
+        ❌ A farmer, traveler, or commuter cannot convert raw physics into operational life decisions!
+      </div>
+    </div>
+
+    <!-- Scene 2: Introducing WeatherGPT (SIH26068) -->
+    <div class="scene-layer" id="scene1">
+      <div class="scene-tag">🌟 Introducing The Solution</div>
+      <h1 class="scene-title">WeatherGPT (SIH26068)</h1>
+      <p class="scene-desc">Conversational AI for Weather Forecasting, Alerts &amp; Climate Information — Built under MoES &amp; IMD Disaster Management Themes.</p>
+      
+      <div style="display:flex; gap:16px; margin-top:6px; max-width:850px; width:100%;">
+        <div class="glass-card" style="flex:1; padding:16px; border-color:rgba(56,189,248,0.4);">
+          <div style="font-size:2rem; margin-bottom:4px;">💬</div>
+          <b style="color:#fff; font-size:0.95rem;">Conversational AI</b>
+          <div style="color:#94a3b8; font-size:0.75rem; margin-top:4px;">Hindi • Hinglish • English natural dialogue</div>
+        </div>
+        <div class="glass-card" style="flex:1; padding:16px; border-color:rgba(52,211,153,0.4);">
+          <div style="font-size:2rem; margin-bottom:4px;">🛡️</div>
+          <b style="color:#fff; font-size:0.95rem;">Zero-Hallucination</b>
+          <div style="color:#94a3b8; font-size:0.75rem; margin-top:4px;">AI never invents numbers; strictly grounded</div>
+        </div>
+        <div class="glass-card" style="flex:1; padding:16px; border-color:rgba(251,191,36,0.4);">
+          <div style="font-size:2rem; margin-bottom:4px;">⚡</div>
+          <b style="color:#fff; font-size:0.95rem;">FastAPI + 2G/3G Ready</b>
+          <div style="color:#94a3b8; font-size:0.75rem; margin-top:4px;">Zero-bundle overhead for rural India</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 3: Why WeatherGPT is the BEST? (The Battle Matrix) -->
+    <div class="scene-layer" id="scene2">
+      <div class="scene-tag">⚔️ Why WeatherGPT is the BEST?</div>
+      <h1 class="scene-title">Traditional Weather Apps vs WeatherGPT</h1>
+      <p class="scene-desc">There are thousands of weather apps. Why is WeatherGPT the game changer for 1.4 Billion citizens?</p>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Decision Criteria</th>
+            <th>Traditional Weather Apps</th>
+            <th>WeatherGPT (SIH26068)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>Output Style</b></td>
+            <td class="comp-bad">❌ Raw confusing numbers (28°C, 82% hum)</td>
+            <td class="comp-good">✅ Direct Action: "Haan, kapde 2 ghante me sukhenge!"</td>
+          </tr>
+          <tr>
+            <td><b>Hallucination Risk</b></td>
+            <td class="comp-bad">❌ Generic LLMs hallucinate fake rain</td>
+            <td class="comp-good">✅ 100% Zero-Hallucination Grounded Architecture</td>
+          </tr>
+          <tr>
+            <td><b>Farmer &amp; Crop Support</b></td>
+            <td class="comp-bad">❌ None. Only generic precipitation %</td>
+            <td class="comp-good">✅ 12-Month Sowing Calendar + Pesticide Spray Window</td>
+          </tr>
+          <tr>
+            <td><b>Disaster Warning Speed</b></td>
+            <td class="comp-bad">❌ Buried under deep nested menus</td>
+            <td class="comp-good">✅ Instant Red/Orange Alert + NDMA SACHET Gateway</td>
+          </tr>
+          <tr>
+            <td><b>Vernacular Accessibility</b></td>
+            <td class="comp-bad">❌ English-only technical dashboards</td>
+            <td class="comp-good">✅ Voice STT Mic + Shuddh Hindi Text-to-Speech</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Scene 4: End-to-End System Architecture -->
+    <div class="scene-layer" id="scene3">
+      <div class="scene-tag">🏗️ Engineering Architecture</div>
+      <h1 class="scene-title">End-to-End Pipeline &amp; Modular Flow</h1>
+      <p class="scene-desc">High-speed asynchronous Python 3.12 ASGI pipeline integrated with IMD thresholds and multi-model NWP.</p>
+
+      <div class="arch-flow-row">
+        <div class="arch-node">
+          <span>🎤</span>
+          <span>User Voice / Text</span>
+          <small>Hindi / Hinglish / En</small>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <span>🖥️</span>
+          <span>Frontend Console</span>
+          <small>Glassmorphic UI</small>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <span>⚡</span>
+          <span>FastAPI (Python 3.12)</span>
+          <small>Asynchronous REST</small>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <span>🧠</span>
+          <span>NLU &amp; Parser</span>
+          <small>Intent &amp; City Extractor</small>
+        </div>
+      </div>
+
+      <div class="arch-flow-row" style="margin-top:12px;">
+        <div class="arch-node">
+          <span>🌐</span>
+          <span>NWP Multi-Model</span>
+          <small>ECMWF • GFS • ICON</small>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <span>🚨</span>
+          <span>IMD CAP Evaluator</span>
+          <small>Heatwave &ge;42°C Red</small>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <span>👥</span>
+          <span>Persona Engines</span>
+          <small>Kisan • Yatri • Nagrik</small>
+        </div>
+        <div class="arch-arrow">➔</div>
+        <div class="arch-node">
+          <span>🛡️</span>
+          <span>Grounded Synthesis</span>
+          <small>Zero-Hallucination JSON</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 5: 4-Domain Persona Intelligence Matrix -->
+    <div class="scene-layer" id="scene4">
+      <div class="scene-tag">🎯 Domain Personas</div>
+      <h1 class="scene-title">Tailored Intelligence for Every Citizen</h1>
+      <p class="scene-desc">Automated persona auto-inference delivers hyper-contextual advisories based on query terms.</p>
+
+      <div class="persona-grid">
+        <div class="persona-card kisan">
+          <div class="persona-header" style="color:#34d399;">
+            <span>🌾</span> <span>Kisan (Farmer)</span>
+          </div>
+          <ul class="persona-bullets">
+            <li><b>Crop Sowing Calendar:</b> Sarson (Pusa Bold), Matar, Gehun, Zaid Moong.</li>
+            <li><b>Pesticide Spray:</b> Warns if wind &gt; 18 km/h.</li>
+            <li><b>Irrigation:</b> Deferral if rain &gt; 50%.</li>
+          </ul>
+        </div>
+
+        <div class="persona-card yatri">
+          <div class="persona-header" style="color:#38bdf8;">
+            <span>🚗</span> <span>Yatri (Traveler)</span>
+          </div>
+          <ul class="persona-bullets">
+            <li><b>Asphalt Hydroplaning:</b> Highway waterfilm hazards.</li>
+            <li><b>Fog &amp; Smog:</b> Low-beam lighting guidance.</li>
+            <li><b>Crosswinds:</b> Two-wheeler bridge safety.</li>
+          </ul>
+        </div>
+
+        <div class="persona-card nagrik">
+          <div class="persona-header" style="color:#fbbf24;">
+            <span>🏙️</span> <span>Nagrik (Citizen)</span>
+          </div>
+          <ul class="persona-bullets">
+            <li><b>Laundry Drying:</b> Accurate drying window.</li>
+            <li><b>UV Index Hazard:</b> Alerts if UV index &gt; 7.0.</li>
+            <li><b>Apparel &amp; AC:</b> Cotton vs thermal clothing.</li>
+          </ul>
+        </div>
+
+        <div class="persona-card disaster">
+          <div class="persona-header" style="color:#ef4444;">
+            <span>🚨</span> <span>Disaster Officer</span>
+          </div>
+          <ul class="persona-bullets">
+            <li><b>Urban Waterlogging:</b> Underpass inundation limits.</li>
+            <li><b>IMD CAP Protocol:</b> Severe squall warnings.</li>
+            <li><b>SDRF Readiness:</b> Level-2 stand-by alerts.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 6: Live Doppler Radar & Multi-Model NWP -->
+    <div class="scene-layer" id="scene5">
+      <div class="scene-tag">🛰️ Real-Time Doppler &amp; NWP</div>
+      <h1 class="scene-title">Pan-India Radar &amp; Multi-Model Consensus</h1>
+      <p class="scene-desc">Live RainViewer precipitation scan tiles combined with 3 global Numerical Weather Prediction models.</p>
+
+      <div class="split-two-col">
+        <!-- Radar Visualization -->
+        <div class="glass-card" style="padding:14px; text-align:center;">
+          <div style="font-size:0.8rem; font-weight:800; color:#38bdf8; margin-bottom:8px;">📡 Doppler Weather Radar Stream</div>
+          <div class="radar-circle-sim">
+            <div class="radar-sweep-hand"></div>
+            <div class="radar-point" style="top:38%; left:46%;" title="Delhi"></div>
+            <div class="radar-point" style="top:54%; left:43%;" title="Indore"></div>
+            <div class="radar-point" style="top:65%; left:38%;" title="Mumbai"></div>
+            <div class="radar-point" style="top:75%; left:53%;" title="Bengaluru"></div>
+            <div class="radar-point" style="top:58%; left:66%;" title="Kolkata"></div>
+          </div>
+          <div style="font-size:0.72rem; color:#94a3b8; margin-top:8px;">Live radar scan covering 17+ Indian hubs</div>
+        </div>
+
+        <!-- NWP Multi-Model Consensus -->
+        <div class="glass-card" style="padding:14px; text-align:left;">
+          <div style="font-size:0.8rem; font-weight:800; color:#fbbf24; margin-bottom:8px;">🌐 NWP Multi-Model Consensus</div>
+          
+          <div style="background:rgba(30,41,59,0.7); padding:8px 12px; border-radius:8px; margin-bottom:6px; font-size:0.78rem; display:flex; justify-content:space-between;">
+            <span>🇪🇺 <b>ECMWF IFS-025</b> (Europe)</span>
+            <span style="color:#38bdf8; font-weight:700;">31°C • Rain 5%</span>
+          </div>
+
+          <div style="background:rgba(30,41,59,0.7); padding:8px 12px; border-radius:8px; margin-bottom:6px; font-size:0.78rem; display:flex; justify-content:space-between;">
+            <span>🇺🇸 <b>NOAA GFS Seamless</b> (USA)</span>
+            <span style="color:#38bdf8; font-weight:700;">30°C • Rain 8%</span>
+          </div>
+
+          <div style="background:rgba(30,41,59,0.7); padding:8px 12px; border-radius:8px; font-size:0.78rem; display:flex; justify-content:space-between;">
+            <span>🇩🇪 <b>DWD ICON Seamless</b> (Germany)</span>
+            <span style="color:#38bdf8; font-weight:700;">31°C • Rain 5%</span>
+          </div>
+
+          <div style="margin-top:8px; font-size:0.72rem; color:#34d399; font-weight:700;">
+            🛡️ Scientific Consensus: High Confidence Forecast
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 7: Zero-Hallucination & Grounding Transparency -->
+    <div class="scene-layer" id="scene6">
+      <div class="scene-tag">🛡️ Grounding Transparency</div>
+      <h1 class="scene-title">Verified Zero-Hallucination Guarantee</h1>
+      <p class="scene-desc">Every AI response includes an expandable "Why This Answer?" inspector ensuring full auditability.</p>
+
+      <div class="grounding-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span style="font-weight:800; font-size:0.88rem; color:#34d399;">🔎 "Why this answer?" Grounding Inspector</span>
+          <span style="background:rgba(52,211,153,0.15); color:#34d399; padding:3px 8px; border-radius:12px; font-size:0.7rem; font-weight:800;">DPDP Act 2023 Compliant</span>
+        </div>
+
+        <div class="grounding-row">
+          <span class="g-lbl">📍 Met Grid Point:</span>
+          <span class="g-val">Indore (IMD High-Res Grid Point • Lat 22.71° N, Lon 75.85° E)</span>
+        </div>
+        <div class="grounding-row">
+          <span class="g-lbl">📡 Verified Data Source:</span>
+          <span class="g-val">Open-Meteo REST • ECMWF IFS-025 • RainViewer Tiles</span>
+        </div>
+        <div class="grounding-row">
+          <span class="g-lbl">⚠️ Official Protocol:</span>
+          <span class="g-val">IMD CAP Protocol &amp; NDMA SACHET Disaster Gateway</span>
+        </div>
+        <div class="grounding-row">
+          <span class="g-lbl">⚖️ Decision Guardrail:</span>
+          <span class="g-val">Strict Meteorological Thresholds — Zero LLM Number Invention</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 8: Real-Life Benefits: Kyu Log Use Karenge? -->
+    <div class="scene-layer" id="scene7">
+      <div class="scene-tag">💡 Value Proposition</div>
+      <h1 class="scene-title">Kyu Log WeatherGPT Use Karenge?</h1>
+      <p class="scene-desc">Tangible economic, life-safety, and operational benefits for every Indian household and enterprise.</p>
+
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <div class="benefit-icon">💰</div>
+          <div class="benefit-title">Crop Protection</div>
+          <div class="benefit-text">Prevents pesticide wash-off and untimely harvest, saving lakhs of rupees for farmers.</div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-icon">🚨</div>
+          <div class="benefit-title">Disaster Life Safety</div>
+          <div class="benefit-text">Immediate Red Alert notices during severe heatwaves (≥42°C) and flash floods save human lives.</div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-icon">🗣️</div>
+          <div class="benefit-title">True Inclusion</div>
+          <div class="benefit-text">Non-literate citizens simply speak into the mic and listen to the voice answer in native Hindi.</div>
+        </div>
+
+        <div class="benefit-card">
+          <div class="benefit-icon">⚡</div>
+          <div class="benefit-title">Instant 2G/3G Speed</div>
+          <div class="benefit-text">Lightweight zero-bundle Vanilla JS loads in under 1 second on low-bandwidth rural networks.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 9: Production Prototype Outro -->
+    <div class="scene-layer" id="scene8">
+      <div class="scene-tag" style="background:rgba(52,211,153,0.15); color:#34d399; border-color:rgba(52,211,153,0.35);">🚀 Smart India Hackathon (SIH26068)</div>
+      <h1 class="scene-title">WeatherGPT</h1>
+      <p class="scene-desc">Mausam ki jankari, ab har Bharatwasi ke sahi faisle me — har bhasha me, bina kisi confusion ke.</p>
+
+      <div style="background:rgba(15,23,42,0.92); border:1px solid rgba(56,189,248,0.35); border-radius:12px; padding:12px 24px; font-family:'JetBrains Mono', monospace; font-size:0.95rem; color:#38bdf8; margin-bottom:14px;">
+        🌐 Live Production: https://weathergpt-sih-2026-1.onrender.com
+      </div>
+
+      <div style="font-size:0.85rem; color:#94a3b8; font-weight:700;">
+        Ministry of Earth Sciences (MoES) • India Meteorological Department (IMD)
+      </div>
+    </div>
+
+    <!-- Animated Subtitles Bar -->
+    <div class="subtitles-bar" id="subtitles">
+      Press ▶ Play to experience the WeatherGPT presentation video
+    </div>
+
+    <!-- Video Player Controls -->
+    <div class="player-controls">
+      <button class="ctrl-btn" id="playBtn" onclick="togglePlay()" title="Play / Pause (Space)">▶</button>
+      <button class="ctrl-btn" id="musicToggleBtn" onclick="toggleMusic()" title="Toggle Cinematic Music">🎵 Music: ON</button>
+      <button class="ctrl-btn" id="voiceToggleBtn" onclick="toggleVoice()" title="Toggle Voiceover Audio">🔊 Voice: OFF</button>
+      
+      <div class="progress-bar-container" onclick="seekVideo(event)">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <span class="time-disp" id="timeDisp">00:00 / 02:45</span>
+      <button class="ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // Web Audio API Cinematic Procedural Tech Background Music Synth
+    // =========================================================================
+    let audioCtx = null;
+    let musicPlaying = false;
+    let musicInterval = null;
+    let musicEnabled = true;
+    let voiceEnabled = false;
+
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Play synthesized electronic pulse beat & lush arpeggios
+    const chordProgressions = [
+      [220.00, 261.63, 329.63, 392.00], // Am7
+      [174.61, 220.00, 261.63, 329.63], // Fmaj7
+      [130.81, 164.81, 196.00, 246.94], // C
+      [196.00, 246.94, 293.66, 392.00]  // G
+    ];
+
+    let currentChord = 0;
+    let beatStep = 0;
+
+    function playCinematicStep() {
+      if (!musicPlaying || !audioCtx) return;
+      const t = audioCtx.currentTime;
+
+      // 1. Kick on every 4 beats
+      if (beatStep % 4 === 0) {
+        const kickOsc = audioCtx.createOscillator();
+        const kickGain = audioCtx.createGain();
+        kickOsc.frequency.setValueAtTime(140, t);
+        kickOsc.frequency.exponentialRampToValueAtTime(32, t + 0.14);
+        kickGain.gain.setValueAtTime(0.35, t);
+        kickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        kickOsc.connect(kickGain);
+        kickGain.connect(audioCtx.destination);
+        kickOsc.start(t);
+        kickOsc.stop(t + 0.16);
+      }
+
+      // 2. Hi-hat on offbeats
+      if (beatStep % 2 === 1) {
+        const hatNode = audioCtx.createBufferSource();
+        const bufferSize = audioCtx.sampleRate * 0.04;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        hatNode.buffer = buffer;
+
+        const hatFilter = audioCtx.createBiquadFilter();
+        hatFilter.type = 'highpass';
+        hatFilter.frequency.value = 7500;
+
+        const hatGain = audioCtx.createGain();
+        hatGain.gain.setValueAtTime(0.08, t);
+        hatGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+
+        hatNode.connect(hatFilter);
+        hatFilter.connect(hatGain);
+        hatGain.connect(audioCtx.destination);
+        hatNode.start(t);
+      }
+
+      // 3. Ambient Synth Pluck
+      const chord = chordProgressions[currentChord];
+      const noteFreq = chord[beatStep % chord.length] * (beatStep % 3 === 0 ? 2 : 1);
+
+      const pluckOsc = audioCtx.createOscillator();
+      const pluckGain = audioCtx.createGain();
+      pluckOsc.type = 'sine';
+      pluckOsc.frequency.setValueAtTime(noteFreq, t);
+
+      pluckGain.gain.setValueAtTime(0.12, t);
+      pluckGain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+      pluckOsc.connect(pluckGain);
+      pluckGain.connect(audioCtx.destination);
+      pluckOsc.start(t);
+      pluckOsc.stop(t + 0.36);
+
+      // Advance sequencer
+      beatStep = (beatStep + 1) % 16;
+      if (beatStep === 0) {
+        currentChord = (currentChord + 1) % chordProgressions.length;
+      }
+    }
+
+    function startMusic() {
+      initAudioContext();
+      if (musicInterval) clearInterval(musicInterval);
+      musicPlaying = true;
+      musicInterval = setInterval(playCinematicStep, 150); // ~100 BPM 16th notes
+    }
+
+    function stopMusic() {
+      musicPlaying = false;
+      if (musicInterval) clearInterval(musicInterval);
+    }
+
+    function toggleMusic() {
+      musicEnabled = !musicEnabled;
+      const btn = document.getElementById('musicToggleBtn');
+      if (musicEnabled) {
+        btn.textContent = '🎵 Music: ON';
+        btn.classList.add('active');
+        if (isPlaying) startMusic();
+      } else {
+        btn.textContent = '🎵 Music: OFF';
+        btn.classList.remove('active');
+        stopMusic();
+      }
+    }
+
+    function toggleVoice() {
+      voiceEnabled = !voiceEnabled;
+      const btn = document.getElementById('voiceToggleBtn');
+      if (voiceEnabled) {
+        btn.textContent = '🔊 Voice: ON';
+        btn.classList.add('active');
+      } else {
+        btn.textContent = '🔊 Voice: OFF';
+        btn.classList.remove('active');
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      }
+    }
+
+    // =========================================================================
+    // Canvas & Living Atmospheric Particle Simulation
+    // =========================================================================
+    const canvas = document.getElementById('stageCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let isPlaying = false;
+    let currentSceneIdx = 0;
+    let videoTime = 0;
+    const totalDuration = 165; // 2 minutes 45 seconds total length
+    let animFrame = null;
+
+    // Timeline Configuration (9 Scenes)
+    const scenes = [
+      {
+        id: 'scene0', start: 0, end: 18,
+        sub: "The Problem: India generates massive weather data, but raw metrics fail ordinary citizens' daily decisions!",
+        voiceText: "India generates abundant meteorological intelligence, but raw atmospheric metrics create a critical last-mile translation gap.",
+        lang: 'en-IN'
+      },
+      {
+        id: 'scene1', start: 18, end: 36,
+        sub: "Introducing WeatherGPT (SIH26068): Conversational AI for Weather Forecasting & Disaster Safety under MoES & IMD!",
+        voiceText: "Introducing WeatherGPT, India's first conversational meteorological copilot built under MoES and IMD themes.",
+        lang: 'en-IN'
+      },
+      {
+        id: 'scene2', start: 36, end: 56,
+        sub: "Why WeatherGPT is the BEST? Direct Actionable Decisions vs Confusing Raw Numbers & Hallucinations!",
+        voiceText: "Why is WeatherGPT superior? Because while traditional apps show confusing numbers, WeatherGPT delivers actionable life decisions.",
+        lang: 'en-IN'
+      },
+      {
+        id: 'scene3', start: 56, end: 76,
+        sub: "Engineering Architecture: High-speed FastAPI Python 3.12 ASGI pipeline with multi-model NWP integration!",
+        voiceText: "Robust backend architecture powered by FastAPI, Pydantic, and verified multi-model meteorological consensus.",
+        lang: 'en-IN'
+      },
+      {
+        id: 'scene4', start: 76, end: 98,
+        sub: "4-Domain Persona Matrix: Tailored intelligence for Kisan (Farmer), Yatri (Traveler), Nagrik & Disaster Officers!",
+        voiceText: "Tailored intelligence across four domains: Kisan agro calendar, Yatri highway safety, Nagrik comfort, and Disaster Officers.",
+        lang: 'en-IN'
+      },
+      {
+        id: 'scene5', start: 98, end: 118,
+        sub: "Live Doppler Weather Radar Stream + NWP Multi-Model Consensus (ECMWF IFS-025, NOAA GFS, DWD ICON)!",
+        voiceText: "Real-time Doppler precipitation radar stream combined with triple multi-model numerical weather prediction consensus.",
+        lang: 'en-IN'
+      },
+      {
+        id: 'scene6', start: 118, end: 138,
+        sub: "Zero-Hallucination Grounding: Transparent 'Why this answer?' inspector compliant with DPDP Act 2023!",
+        voiceText: "Strict Zero-Hallucination architecture. The AI never invents weather numbers, ensuring complete institutional auditability.",
+        lang: 'en-IN'
+      },
+      {
+        id: 'scene7', start: 138, end: 154,
+        sub: "Why People Will Use It: Protects crops worth lakhs, saves lives in heatwaves, and empowers rural Bharat via Voice!",
+        voiceText: "Why will citizens use it? It protects farm yields, provides life-saving early warnings, and gives everyone a voice.",
+        lang: 'en-IN'
+      },
+      {
+        id: 'scene8', start: 154, end: 165,
+        sub: "WeatherGPT (SIH26068): Mausam ki jankari, ab har Bharatwasi ke sahi faisle me. Thank you!",
+        voiceText: "WeatherGPT: Transforming weather intelligence into human action for all 1.4 billion citizens. Thank you!",
+        lang: 'en-IN'
+      }
+    ];
+
+    function resizeCanvas() {
+      const box = document.getElementById('videoBox');
+      canvas.width = box.clientWidth;
+      canvas.height = box.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Generate Particles
+    for (let i = 0; i < 70; i++) {
+      particles.push({
+        x: Math.random() * 1100,
+        y: Math.random() * 650,
+        r: Math.random() * 2.2 + 1,
+        sy: Math.random() * 0.45 + 0.25,
+        sx: (Math.random() - 0.5) * 0.35,
+        op: Math.random() * 0.65 + 0.2
+      });
+    }
+
+    function renderCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Deep Space Ambient Radial Gradient
+      const grad = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 60,
+        canvas.width / 2, canvas.height / 2, canvas.width / 1.1
+      );
+      grad.addColorStop(0, 'rgba(14, 165, 233, 0.14)');
+      grad.addColorStop(1, 'rgba(2, 6, 23, 0.98)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Floating Glow Dust Particles
+      particles.forEach(p => {
+        ctx.fillStyle = `rgba(56, 189, 248, ${p.op})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        p.y -= p.sy;
+        p.x += p.sx;
+        if (p.y < 0) { p.y = canvas.height; p.x = Math.random() * canvas.width; }
+      });
+
+      requestAnimationFrame(renderCanvas);
+    }
+    renderCanvas();
+
+    // Main Video Loop
+    let lastTimestamp = null;
+    function videoLoop(timestamp) {
+      if (!isPlaying) return;
+
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+
+      videoTime += delta;
+      if (videoTime >= totalDuration) {
+        videoTime = totalDuration;
+        pauseVideo();
+      }
+
+      updateVideoUI();
+      animFrame = requestAnimationFrame(videoLoop);
+    }
+
+    function updateVideoUI() {
+      // Progress Fill
+      const pct = (videoTime / totalDuration) * 100;
+      document.getElementById('progressFill').style.width = pct + '%';
+
+      // Time Display
+      const curM = String(Math.floor(videoTime / 60)).padStart(2, '0');
+      const curS = String(Math.floor(videoTime % 60)).padStart(2, '0');
+      document.getElementById('timeDisp').textContent = `${curM}:${curS} / 02:45`;
+
+      // Check Active Scene
+      let targetSceneIdx = 0;
+      for (let i = 0; i < scenes.length; i++) {
+        if (videoTime >= scenes[i].start && videoTime < scenes[i].end) {
+          targetSceneIdx = i;
+          break;
+        }
+      }
+
+      if (targetSceneIdx !== currentSceneIdx) {
+        switchScene(targetSceneIdx);
+      }
+    }
+
+    function switchScene(idx) {
+      currentSceneIdx = idx;
+      scenes.forEach((sc, i) => {
+        const el = document.getElementById(sc.id);
+        if (el) el.classList.toggle('active', i === idx);
+      });
+
+      // Update Dot Navigators
+      const dots = document.querySelectorAll('.scene-dot-btn');
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+
+      // Update Subtitles
+      const current = scenes[idx];
+      document.getElementById('subtitles').textContent = current.sub;
+
+      // Optional Voiceover Speech
+      if (voiceEnabled && isPlaying && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(current.voiceText);
+        utter.rate = 1.05;
+        utter.pitch = 1.0;
+        utter.lang = current.lang || 'en-IN';
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        pauseVideo();
+      } else {
+        playVideo();
+      }
+    }
+
+    function playVideo() {
+      if (videoTime >= totalDuration) videoTime = 0;
+      isPlaying = true;
+      document.getElementById('playBtn').textContent = '⏸';
+      lastTimestamp = null;
+      animFrame = requestAnimationFrame(videoLoop);
+      switchScene(currentSceneIdx);
+      if (musicEnabled) startMusic();
+    }
+
+    function pauseVideo() {
+      isPlaying = false;
+      document.getElementById('playBtn').textContent = '▶';
+      if (animFrame) cancelAnimationFrame(animFrame);
+      stopMusic();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    function jumpToScene(idx) {
+      videoTime = scenes[idx].start;
+      switchScene(idx);
+      updateVideoUI();
+      if (!isPlaying) playVideo();
+    }
+
+    function seekVideo(e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+      videoTime = ratio * totalDuration;
+      updateVideoUI();
+      switchScene(currentSceneIdx);
+    }
+
+    function toggleFullscreen() {
+      const box = document.getElementById('videoBox');
+      if (!document.fullscreenElement) {
+        box.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Keyboard Spacebar Shortcut
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      }
+    });
+
+    // =========================================================================
+    // High-Resolution 1080p Screen & Tab Recorder
+    // =========================================================================
+    let screenRecorder = null;
+    let screenChunks = [];
+
+    async function toggleScreenRecording() {
+      const btn = document.getElementById('btnExport');
+      const text = document.getElementById('exportText');
+
+      if (screenRecorder && screenRecorder.state === 'recording') {
+        screenRecorder.stop();
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: "browser", width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: true
+        });
+
+        screenChunks = [];
+        screenRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+
+        screenRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) screenChunks.push(e.data);
+        };
+
+        screenRecorder.onstop = () => {
+          const blob = new Blob(screenChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'WeatherGPT_Pitch_Video_1080p_SIH26068.webm';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+
+          text.textContent = 'Export 1080p Video (.webm)';
+          btn.classList.remove('recording');
+
+          // Stop all media tracks
+          stream.getTracks().forEach(tr => tr.stop());
+        };
+
+        screenRecorder.start();
+        text.textContent = '⏺ Recording Tab... Click to Finish';
+        btn.classList.add('recording');
+
+        // Restart presentation from 0:00 and auto-play
+        videoTime = 0;
+        playVideo();
+
+      } catch (err) {
+        console.warn("Screen recording cancelled or not permitted:", err);
+      }
+    }
+  </script>
+</body>
+</html>

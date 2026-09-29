@@ -19,11 +19,15 @@ function getApiBaseUrl() {
 
 const WEATHER_WORDS = [
   'weather', 'mausam', 'baarish', 'barish', 'rain', 'temperature', 'temp', 'garmi',
-  'sardi', 'forecast', 'alert', 'cyclone', 'flood', 'khet', 'sinchai', 'travel',
+  'sardi', 'forecast', 'alert', 'cyclone', 'flood', 'khet', 'kheti', 'sinchai', 'travel',
   'highway', 'umbrella', 'humidity', 'wind', 'hawa', 'uv', 'aqi', 'imd', 'toofan',
   'kapde', 'sukha', 'car wash', 'wash', 'walk', 'cricket', 'match', 'khel', 'ac', 'dhoop',
-  'clothes', 'dry', 'jogging', 'run', 'safar', 'trip', 'outdoor', 'garmi', 'thand', 'chhat',
-  'gaadi', 'cooler', 'sweater', 'jacket', 'pant', 'coat', 'raining', 'subah', 'shaam', 'kal', 'parso'
+  'clothes', 'dry', 'jogging', 'run', 'safar', 'trip', 'outdoor', 'thand', 'chhat',
+  'gaadi', 'cooler', 'sweater', 'jacket', 'pant', 'coat', 'raining', 'subah', 'shaam', 'kal', 'parso',
+  'fasal', 'faslein', 'crop', 'crops', 'farming', 'rabi', 'kharif', 'zaid', 'sarson', 'gehun', 'wheat',
+  'chana', 'dhan', 'soyabean', 'aloo', 'matar', 'lahsun', 'pyaz', 'makka', 'bajra', 'moong', 'urad',
+  'boye', 'buwai', 'lagaye', 'mahina', 'mahine', 'month', 'months', 'calendar', 'october', 'november',
+  'december', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september'
 ];
 
 function classifyClientIntent(query) {
@@ -247,8 +251,8 @@ class ChatController {
   async generateClientSideFallback(query, defaultCity, persona) {
     const isHindiScript = /[\u0900-\u097F]/.test(query);
     const lower = query.toLowerCase();
-    const hinglishMarkers = ['kya', 'hai', 'hoga', 'hogi', 'batao', 'kaise', 'kaisa', 'mein', 'aaj', 'kal', 'baarish', 'barish', 'mausam', 'khet', 'sinchai', 'safar', 'jaana', 'chahiye', 'rahega', 'kitna', 'namaste', 'kapde', 'sukha', 'chhat'];
-    const englishMarkers = ['what', 'will', 'how', 'is', 'the', 'weather', 'temperature', 'forecast', 'rain', 'today', 'tomorrow', 'check', 'should', 'can', 'clothes', 'dry'];
+    const hinglishMarkers = ['kya', 'hai', 'hoga', 'hogi', 'batao', 'kaise', 'kaisa', 'mein', 'me', 'se', 'aaj', 'kal', 'baarish', 'barish', 'mausam', 'khet', 'sinchai', 'safar', 'jaana', 'chahiye', 'rahega', 'kitna', 'namaste', 'kapde', 'sukha', 'chhat', 'kheti', 'khati', 'fasal', 'faslein', 'mahina', 'mahine', 'kon', 'konsi', 'kaun', 'kaunsi', 'kara', 'kare', 'boye', 'buwai', 'lagaye', 'thandi', 'sardi', 'barsat'];
+    const englishMarkers = ['what', 'will', 'how', 'the', 'weather', 'temperature', 'forecast', 'rain', 'today', 'tomorrow', 'check', 'should', 'can', 'clothes', 'dry'];
     
     let detectedLang = 'hinglish';
     if (isHindiScript) {
@@ -314,7 +318,9 @@ class ChatController {
         intent = 'rain_timing';
       } else if (/kya pehne|garmi|thand|ac chalaye|fan|sweater|jacket|hoodie|feels like/.test(lower)) {
         intent = 'apparel_comfort';
-      } else if (/sinchai|irrigate|khet|fasal|crop|pesticide/.test(lower)) {
+      } else if (/kon se kheti|konsi kheti|kheti kare|konsi fasal|kon si fasal|kya boye|kya lagaye|crop calendar|crops to grow|which crop|fasal boye|fasal lagaye|rabi|kharif|zaid|all months|har mahine|mahina me|mahine me|october me|oct me|garmi me|thandi me|sardi me|barsat me|fasal ki buwai|kheti ki jankari|kheti|fasal|फसल|खेती|बोएं|लगाएं|रबी|खरीफ|जायद/.test(lower)) {
+        intent = 'crop_calendar';
+      } else if (/sinchai|irrigate|khet|pesticide|spray/.test(lower)) {
         intent = 'agriculture';
       } else if (/travel|safar|drive|road|highway|bike se|car se/.test(lower)) {
         intent = 'travel';
@@ -389,6 +395,35 @@ class ChatController {
           answer = `${op_hg}**Ground par khelne ke liye mausam ekdam solid hai!** Baarish ka koi darr nahi hai (sirf ${rainProb}%) aur pitch dry rahegi.`;
         }
         followups = ["Shaam ko baarish hogi?", "Temperature kitna rahega?", "Highway trip"];
+      } else if (intent === 'crop_calendar') {
+        const isAllMonths = /all months|har mahine|calendar|pure saal|12 mahine|calender/.test(lower);
+        const isSummer = /garmi|summer|zaid|march|april|may|june|गर्मी/.test(lower);
+        const isWinter = /thandi|sardi|winter|nov|dec|jan|ठंड|सर्दी/.test(lower);
+        const isMonsoon = /barsat|monsoon|kharif|july|august|बरसात|खरीफ/.test(lower);
+
+        if (isAllMonths) {
+          answer = detectedLang === 'hindi'
+            ? `🌾 **भारत का 12 महीने का फसल कैलेंडर (Crop Calendar):**\n\n1. **रबी (अक्टूबर-मार्च):** गेहूं, सरसों, चना, मटर, आलू, लहसुन, प्याज।\n2. **जायद/गर्मी (मार्च-जून):** मूंग, उड़द, तरबूज, खरबूजा, खीरा, ककड़ी, भिंडी।\n3. **खरीफ/मानसून (जून-अक्टूबर):** धान, सोयाबीन, मक्का, बाजरा, मूंगफली, अरहर, कपास।\n\n📍 **${targetCity.name}:** तापमान **${temp}°C** बुवाई के लिए उत्तम है!`
+            : `🌾 **Bharat Ka 12-Mahine Ka Kheti Calendar:**\n\n1. **Rabi (October se March):** Gehun, Sarson, Chana, Matar, Aloo, Lahsun, Pyaz.\n2. **Zaid / Garmi (March se June):** Moong, Urad, Tarbooz, Kharbooja, Kheera, Kakdi, Bhindi.\n3. **Kharif / Monsoon (June se October):** Dhan, Soyabean, Makka, Bajra, Moongphali, Arhar.\n\n📍 **${targetCity.name}:** Current temperature **${temp}°C** buwai ke liye ekdam badiya hai!`;
+        } else if (isSummer) {
+          answer = detectedLang === 'hindi'
+            ? `☀️ **गर्मी (जायद सीजन: मार्च से जून) की मुख्य फसलें:**\n\n1. **मूंग व उड़द:** पूसा विशाल, IPM 205-7 (60 दिन में बंपर उपज)।\n2. **नकदी बेलवाली फसलें:** तरबूज, खरबूजा, खीरा, ककड़ी, लौकी, तोरई।\n3. **सब्जियां:** भिंडी, ग्वarफली।\n\n💧 **सिंचाई:** तेज धूप के कारण 4-5 दिन में शाम के समय हल्की सिंचाई करें।`
+            : `☀️ **Garmi (Zaid Season: March - June) Ki Best Kheti:**\n\n1. **Moong & Urad:** Pusa Vishal, IPM 205-7 (Sirf 60 din me bumper munafa).\n2. **Tarbooz, Kharbooja, Kheera, Kakdi:** Garmi me sabse high cash income dene wali faslein.\n3. **Sabziyan:** Bhindi, Lauki, Torai, Karela.\n\n💧 **Tip:** 4-5 din ke gap par shaam ko halki sinchai karein.`;
+        } else if (isWinter) {
+          answer = detectedLang === 'hindi'
+            ? `❄️ **सर्दियों (रबी सीजन: अक्टूबर से मार्च) की मुख्य फसलें:**\n\n1. **गेहूं:** GW 322, HD 2967, शरबती (बुवाई: 25 Oct से Nov)।\n2. **सरसों:** पूसा बोल्ड, गिरिराज, RH 749।\n3. **चना व मटर:** JG 11 चना, आजाद पी-1 हरी मटर।\n4. **आलू, लहसुन व प्याज:** कुफरी ज्योति आलू और रबी प्याज।`
+            : `❄️ **Thandi / Sardi (Rabi Season) Ki Mukhya Kheti:**\n\n1. **Gehun (Wheat):** GW 322, HD 2967, Sharbati (25 Oct se Nov buwai).\n2. **Sarson (Mustard):** Pusa Bold, Giriraj, RH 749.\n3. **Chana & Matar:** JG 11 Chana, Azad P-1 Hari Matar.\n4. **Aloo, Lahsun & Pyaz:** Kufri Jyoti Aloo aur winter garlic/onion.`;
+        } else {
+          answer = detectedLang === 'hindi'
+            ? `🌾 **अक्टूबर (इस महीने) में कौन सी खेती करें — रबी सीजन:**\n\n1. **सरसों (1-20 अक्टूबर पीक टाइम):** पूसा बोल्ड, गिरिराज, RH 749।\n2. **अगेती हरी मटर:** आजाद पी-1, अर्किल (60 दिन में बंपर भाव)।\n3. **अगेती आलू:** कुफरी पुखराज, कुफरी ज्योति (10-25 अक्टूबर)।\n4. **चना:** 15 अक्टूबर से देसी व डॉलर चने की बुवाई।\n5. **लहसुन व प्याज:** लहसुन की कलियां लगाएं व रबी प्याज की नर्सरी डालें।\n6. **गेहूं की तैयारी:** खेत की पलेवा करें, मुख्य बुवाई 25 अक्टूबर से होगी।\n\n📍 **${targetCity.name} मौसम लाभ:** तापमान **${temp}°C** और बारिश ${rainProb}% जमाव के लिए बिल्कुल अनुकूल है!`
+            : `🌾 **October (Is Mahine) Me Kon Si Kheti Karein — Rabi Season Peak:**\n\n1. **Sarson (Mustard - 1 se 20 Oct):** Pusa Bold, Giriraj, RH 749 (Germination ke liye best time).\n2. **Ageti Hari Matar:** Azad P-1, Arkel (60 din me pehli tudai, high market rate).\n3. **Ageti Aloo:** Kufri Pukhraj, Kufri Jyoti (10-25 Oct ropayi).\n4. **Chana (Gram):** JG 11 Desi chana aur dollar chana.\n5. **Lahsun & Pyaz:** Garlic cloves lagayein aur rabi pyaz ki nursery dalein.\n6. **Gehun Ki Taiyari:** Khet me palewa karein, buwai 25 Oct se shuru hogi.\n\n📍 **${targetCity.name} Live Fit:** Temperature **${temp}°C** aur baarish ka risk na ke barabar (${rainProb}%) hai!`;
+        }
+        followups = [
+          "October me sarson ki buwai kaise karein?",
+          "Gehun ki top kismein konsi hain?",
+          "Garmi me konsi kheti karein?",
+          "Pure 12 mahine ka fasal calendar"
+        ];
       } else if (detectedLang === 'hindi') {
         answer = `🌤️ **${targetCity.name} मौसम विश्लेषण:**\nवर्तमान तापमान **${temp}°C** (महसूस: ${appTemp}°C) है। आर्द्रता ${humidity}% और हवा की गति ${wind} km/h है। बारिश की संभावना लगभग **${rainProb}%** है।`;
         advisories.push(isRainy ? "बारिश की संभावना को देखते हुए छाता साथ रखें।" : "मौसम सामान्य और बाहरी गतिविधियों के लिए अनुकूल है।");

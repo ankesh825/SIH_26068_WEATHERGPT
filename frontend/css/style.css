@@ -261,6 +261,31 @@ body {
   transform: translateY(-1px);
 }
 
+.btn-demo-video {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(249, 115, 22, 0.35));
+  border: 1px solid #f97316;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.25);
+  white-space: nowrap;
+}
+
+.btn-demo-video:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.45), rgba(249, 115, 22, 0.55));
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.5);
+  transform: translateY(-1px);
+}
+
 .status-indicator {
   display: flex;
   align-items: center;

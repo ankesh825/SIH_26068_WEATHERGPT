@@ -105,11 +105,18 @@ async def chat_interaction(req: ChatRequest):
             f"Baarish kitne baje tak aayegi?",
             f"{resolved_name} 7-day outlook"
         ]
+    elif intent == "crop_calendar":
+        followups = [
+            f"October me sarson aur matar ki buwai kaise karein?",
+            f"Rabi faslon ke liye top certified varieties",
+            f"Garmi (Zaid) season me konsi kheti karein?",
+            f"Pure 12 mahine ka fasal calendar dikhao"
+        ]
     elif intent in ["agriculture", "sinchai"]:
         followups = [
             f"Keetnashak spray kab karein?",
             f"Mitti me nami kitne din rahegi?",
-            f"Kal baarish hogi kya?",
+            f"Is mahine me konsi kheti karein?",
             f"Fasal ko tezz hawa se khatra hai?"
         ]
     elif intent == "travel":
