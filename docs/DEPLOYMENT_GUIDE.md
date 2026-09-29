@@ -1,4 +1,4 @@
-# WeatherGPT (SIH26068) Deployment Guide
+# WeatherGPT (SIH26068) Deployment Guid
 
 This guide provides step-by-step instructions and all required configuration settings to deploy **WeatherGPT** on cloud platforms.
 
