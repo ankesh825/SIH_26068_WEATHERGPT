@@ -1,0 +1,28 @@
+1. Idea Title
+National Weather Big Data Analytics and Intelligence Platform
+
+2. Idea Description
+We propose a scalable National Weather Big Data Analytics and Intelligence Platform for collecting, processing, verifying and analysing real-time weather-related information from multiple sources such as public datasets, websites, APIs, citizen reports and publicly available weather information.
+
+The platform will provide a centralized system for ingesting weather-related data along with metadata such as date and time, city, state, geographical location, event category, images and videos wherever available.
+
+A Big Data processing pipeline will organize and process high-volume real-time information. AI/ML-based modules will help identify potentially fake or misleading reports, detect duplicate information, assess source reliability and automatically classify weather events such as rainfall, thunderstorms, flooding, heatwaves, fog, dust storms and strong winds.
+
+The proposed platform will provide a web-based dashboard and Admin Panel for monitoring and analysing collected information. Users will be able to filter information by date, weather event and location, while administrators will be able to monitor verification status and analyse real-time weather information through interactive visualizations.
+
+The platform is designed to support scalable data ingestion, centralized storage, AI/ML-based analysis, verification and real-time visualization, helping transform large volumes of distributed weather information into structured and actionable intelligence for weather and disaster monitoring.
+
+4. Abstract / Summary
+The National Weather Big Data Analytics and Intelligence Platform is proposed as a scalable system for collecting and processing real-time weather-related information from multiple sources including public datasets, websites, APIs, citizen reports and publicly available weather information.
+
+The platform will collect structured weather information and relevant metadata such as date and time, city, state, geographical location, event category, images and videos wherever available. A centralized data layer will organize the collected information, while a scalable processing pipeline will support large-scale real-time ingestion, processing, storage and visualization.
+
+AI and Machine Learning techniques will be incorporated to identify potentially fake or misleading reports, verify untrusted sources, detect duplicate information and automatically classify weather events such as rainfall, thunderstorms, flooding, heatwaves, fog, dust storms and strong winds.
+
+A web-based dashboard and Admin Panel will provide date-wise, event-wise and location-wise filtering, verification-status tracking and real-time visualization and analytics.
+
+The proposed solution aims to convert large volumes of distributed weather information into structured, searchable and analyzable intelligence that can support weather monitoring and disaster-management activities.
+
+5. Technology Bucket
+AI/ML & Computer Vision, GIS/Satellite & Remote Sensing, Mobile/Web App & Dashboard, Cloud/Data & Big Data, Disaster & Environment. �
+Smart India Hackathon
